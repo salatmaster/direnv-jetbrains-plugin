@@ -6,6 +6,13 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The status bar menu works. Every entry in it was disabled and *Allow This .envrc* was missing
+  altogether: the popup was built without a data context, so the actions could not resolve the
+  project they belong to, and the one that hides itself when unavailable hid itself always. The
+  same actions under Tools → direnv were never affected.
+
 ## [0.1.1] - 2026-08-11
 
 ### Changed
