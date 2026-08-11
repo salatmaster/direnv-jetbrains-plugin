@@ -10,6 +10,15 @@ import io.github.salatmaster.direnv.direnv.DirenvDiff
  */
 sealed interface DirenvState {
 
+    /**
+     * True while direnv refuses to run the file until the user approves it.
+     *
+     * The two states that satisfy this differ only in how they were reached — never approved, or
+     * approved and then revoked — and every part of the UI treats them the same.
+     */
+    val needsApproval: Boolean
+        get() = this is Blocked || this is Denied
+
     object NotLoaded : DirenvState
 
     object Loading : DirenvState
@@ -19,6 +28,12 @@ sealed interface DirenvState {
 
     /** An .envrc awaits explicit approval. */
     data class Blocked(val envrcPath: String) : DirenvState
+
+    /**
+     * Approval was revoked. Kept distinct from [Loaded] with an empty diff, which is what direnv
+     * reports for a denied .envrc and would otherwise claim that everything is fine.
+     */
+    data class Denied(val envrcPath: String) : DirenvState
 
     data class Failed(val message: String) : DirenvState
 

@@ -114,6 +114,67 @@ class DirenvCliTest {
     }
 
     @Test
+    fun `export reports a revoked approval rather than an empty environment`() {
+        // `direnv deny` exits 0 and exports nothing, so the exit code says the same thing here as
+        // it does for an .envrc that sets no variables. Only the deny stamp tells them apart.
+        val stamp = Paths.get("/home/u/.local/share/direnv/deny/abc")
+        val encoded = DirenvWatchesCodec.encode(listOf(DirenvWatch(stamp, 0L, true)))
+        runner.respondTo(
+            "export",
+            DirenvProcessResult(0, """{"DIRENV_FILE":"/p/.envrc","DIRENV_WATCHES":"$encoded"}""", ""),
+        )
+
+        val denied = cli.export(workDir) as DirenvOutcome.Denied
+
+        assertEquals(Paths.get("/p/.envrc").toString(), denied.envrcPath)
+        // Kept for the same reason as on a blocked outcome: the allow stamp is in there, and it is
+        // what lets an approval granted in a terminal reach the IDE.
+        assertEquals(listOf(DirenvWatch(stamp, 0L, true)), denied.watches)
+    }
+
+    @Test
+    fun `a deny stamp that no longer exists leaves the environment loaded`() {
+        val stamp = Paths.get("/home/u/.local/share/direnv/deny/abc")
+        val encoded = DirenvWatchesCodec.encode(listOf(DirenvWatch(stamp, 0L, false)))
+        runner.respondTo(
+            "export",
+            DirenvProcessResult(0, """{"DIRENV_FILE":"/p/.envrc","DIRENV_WATCHES":"$encoded"}""", ""),
+        )
+
+        assertTrue(cli.export(workDir) is DirenvOutcome.Loaded)
+    }
+
+    @Test
+    fun `a deny directory outside direnv's data directory is not a revoked approval`() {
+        // A project may watch a file under some unrelated deny/ directory. Reading that as a
+        // revoked approval would hide a perfectly good environment.
+        val unrelated = Paths.get("/p/config/deny/rules")
+        val encoded = DirenvWatchesCodec.encode(listOf(DirenvWatch(unrelated, 0L, true)))
+        runner.respondTo(
+            "export",
+            DirenvProcessResult(
+                0,
+                """{"FOO":"bar","DIRENV_FILE":"/p/.envrc","DIRENV_WATCHES":"$encoded"}""",
+                "",
+            ),
+        )
+
+        val loaded = cli.export(workDir) as DirenvOutcome.Loaded
+
+        assertEquals("bar", loaded.environment.entries["FOO"])
+    }
+
+    @Test
+    fun `a deny stamp with no named rc file stays loaded`() {
+        // Denied would name no file to allow, leaving the user a state they cannot act on.
+        val stamp = Paths.get("/home/u/.local/share/direnv/deny/abc")
+        val encoded = DirenvWatchesCodec.encode(listOf(DirenvWatch(stamp, 0L, true)))
+        runner.respondTo("export", DirenvProcessResult(0, """{"DIRENV_WATCHES":"$encoded"}""", ""))
+
+        assertTrue(cli.export(workDir) is DirenvOutcome.Loaded)
+    }
+
+    @Test
     fun `export distinguishes an unrunnable executable from a missing one`() {
         runner.processFails = true
 

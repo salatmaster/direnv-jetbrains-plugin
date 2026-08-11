@@ -3,6 +3,8 @@ package io.github.salatmaster.direnv
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.salatmaster.direnv.direnv.DirenvCli
 import io.github.salatmaster.direnv.direnv.DirenvProcessResult
+import io.github.salatmaster.direnv.direnv.DirenvWatch
+import io.github.salatmaster.direnv.direnv.DirenvWatchesCodec
 import io.github.salatmaster.direnv.direnv.FakeDirenvProcessRunner
 import kotlinx.coroutines.runBlocking
 import java.nio.file.Path
@@ -100,6 +102,28 @@ class DirenvServiceTest : BasePlatformTestCase() {
         service.load(workDir)
 
         assertFalse(runner.invocations.any { it.args.firstOrNull() == "allow" })
+    }
+
+    fun `test a revoked approval is not cached and still names the file to allow`() = runBlocking {
+        val envrc = workDir.resolve(".envrc")
+        val stamp = Paths.get("/home/u/.local/share/direnv/deny/abc")
+        val watches = DirenvWatchesCodec.encode(listOf(DirenvWatch(stamp, 0L, true)))
+        // Backslashes in a Windows path would otherwise be read as JSON escapes.
+        val envrcJson = envrc.toString().replace("\\", "\\\\")
+        runner.respondTo(
+            "export",
+            DirenvProcessResult(0, """{"DIRENV_FILE":"$envrcJson","DIRENV_WATCHES":"$watches"}""", ""),
+        )
+
+        val state = service.load(workDir)
+
+        assertTrue(state is DirenvState.Denied)
+        // direnv exports nothing once approval is revoked; caching that would leave the plugin
+        // reporting a loaded environment that no longer exists.
+        assertNull(service.cachedFor(workDir))
+        // Nothing is cached, so this is the only thing left that names the file — and without it
+        // the Allow action loses its target and vanishes from the menu.
+        assertEquals(envrc, service.envrcPathFor(workDir))
     }
 
     fun `test missing executable is reported without throwing`() = runBlocking {

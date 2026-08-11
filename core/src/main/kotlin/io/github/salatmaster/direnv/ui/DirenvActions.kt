@@ -37,6 +37,12 @@ internal object DirenvNotifications {
 internal fun projectWorkingDir(project: Project): Path? =
     project.basePath?.let { runCatching { Paths.get(it) }.getOrNull() }
 
+/** The .envrc the UI would act on, or null when direnv has not named one. */
+internal fun envrcFor(project: Project): Path? {
+    val workingDir = projectWorkingDir(project) ?: return null
+    return DirenvService.getInstance(project).envrcPathFor(workingDir)
+}
+
 class DirenvReloadAction : AnAction("Reload direnv Environment") {
 
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
@@ -64,20 +70,22 @@ class DirenvAllowAction : AnAction("Allow This .envrc") {
 
     override fun update(e: AnActionEvent) {
         val project = e.project
-        e.presentation.isEnabledAndVisible =
-            project != null && DirenvGuard.mayRun(project) && envrcPath(project) != null
+        if (project == null || !DirenvGuard.mayRun(project) || envrcFor(project) == null) {
+            e.presentation.isEnabledAndVisible = false
+            return
+        }
+        // Visible but inert once the file is approved. Approving it again would only re-run
+        // direnv, which is what Reload is for, and an entry that comes and goes shifts every row
+        // below it — in this menu that would put Block where the user aimed at Show.
+        e.presentation.isVisible = true
+        e.presentation.isEnabled = DirenvService.getInstance(project).state().needsApproval
     }
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val envrc = envrcPath(project) ?: return
+        val envrc = envrcFor(project) ?: return
         val workingDir = projectWorkingDir(project) ?: return
         DirenvService.getInstance(project).scheduleAllow(envrc, workingDir)
-    }
-
-    private fun envrcPath(project: Project): Path? {
-        val workingDir = projectWorkingDir(project) ?: return null
-        return DirenvService.getInstance(project).envrcPathFor(workingDir)
     }
 }
 
@@ -87,13 +95,21 @@ class DirenvBlockAction : AnAction("Block This .envrc") {
 
     override fun update(e: AnActionEvent) {
         val project = e.project
-        e.presentation.isEnabled = project != null && DirenvGuard.mayRun(project)
+        if (project == null || !DirenvGuard.mayRun(project)) {
+            e.presentation.isEnabled = false
+            return
+        }
+        // Requires a file to revoke: without that check the entry offered itself in projects with
+        // no .envrc at all, and clicking it did nothing and said nothing. Already-revoked
+        // approval is left inert rather than hidden, matching Allow.
+        e.presentation.isEnabled =
+            envrcFor(project) != null && DirenvService.getInstance(project).state() !is DirenvState.Denied
     }
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val workingDir = projectWorkingDir(project) ?: return
-        val envrc = DirenvService.getInstance(project).envrcPathFor(workingDir) ?: return
+        val envrc = envrcFor(project) ?: return
         DirenvService.getInstance(project).scheduleBlock(envrc, workingDir)
     }
 }

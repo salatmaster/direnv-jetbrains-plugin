@@ -129,6 +129,15 @@ class DirenvService(private val project: Project, private val scope: CoroutineSc
             DirenvState.Blocked(outcome.envrcPath)
         }
 
+        is DirenvOutcome.Denied -> {
+            // Nothing is cached, for the same reason as Blocked: no environment was produced, and
+            // a cached one would outlive the approval it came from. The watches are kept so that
+            // allowing the file again — here or in a terminal — is noticed.
+            DirenvWatchService.getInstance(project).updateWatches(workingDir, outcome.watches)
+            log.info("direnv denied: ${outcome.envrcPath}")
+            DirenvState.Denied(outcome.envrcPath)
+        }
+
         is DirenvOutcome.ExecutableNotFound -> DirenvState.ExecutableMissing(outcome.executable)
 
         is DirenvOutcome.Failed -> {
@@ -165,7 +174,19 @@ class DirenvService(private val project: Project, private val scope: CoroutineSc
 
     /** The .envrc backing the environment for [workingDir], if one is known. */
     fun envrcPathFor(workingDir: Path): Path? = cachedFor(workingDir)?.loadedRcPath
-        ?: (currentState.get() as? DirenvState.Blocked)?.let { Path.of(it.envrcPath) }
+        ?: unapprovedRcPath()
+
+    /**
+     * The .envrc named by a state that produced no environment.
+     *
+     * Neither Blocked nor Denied caches an environment, so without this the UI would lose the one
+     * file it needs to act on precisely when approval is the only thing left to do.
+     */
+    private fun unapprovedRcPath(): Path? = when (val state = currentState.get()) {
+        is DirenvState.Blocked -> runCatching { Path.of(state.envrcPath) }.getOrNull()
+        is DirenvState.Denied -> runCatching { Path.of(state.envrcPath) }.getOrNull()
+        else -> null
+    }
 
     private fun publish(state: DirenvState) {
         currentState.set(state)
