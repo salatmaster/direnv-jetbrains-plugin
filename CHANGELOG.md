@@ -6,6 +6,19 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The Marketplace shows what changed in a version. `<change-notes>` was never set, so *What's new*
+  was blank for every release from 0.1.0 to 0.1.3, both on the plugin page and in the Plugins
+  dialog when an update is offered. It now carries the changelog entry for the version being
+  released. Only future versions can gain it: the Marketplace does not allow the notes of an
+  update to be edited once it has been submitted.
+
+### Changed
+
+- Release notes on GitHub quote the changelog instead of listing merged pull request titles, which
+  described what landed rather than what changed for anyone installing the plugin.
+
 ## [0.1.3] - 2026-08-11
 
 ### Changed

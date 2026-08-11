@@ -1,9 +1,11 @@
+import org.jetbrains.changelog.Changelog
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 
 plugins {
     id("org.jetbrains.intellij.platform")
     alias(libs.plugins.kotlin)
+    alias(libs.plugins.changelog)
 }
 
 group = providers.gradleProperty("pluginGroup").get()
@@ -57,9 +59,30 @@ tasks.runIde {
     }
 }
 
+// Read-only use of the changelog: the file is cut by .github/scripts/cut-changelog.sh before the
+// release builds, so patchChangelog is deliberately never run and cannot disagree with it.
+changelog {
+    version = pluginVersion
+}
+
 intellijPlatform {
     pluginConfiguration {
         version = pluginVersion
+
+        // <change-notes> is what the Marketplace shows as "What's new" for a version, and what the
+        // Plugins dialog shows when an update is offered. Leaving it unset is why 0.1.0 through
+        // 0.1.3 published a blank one.
+        //
+        // The section of the version being released is used rather than [Unreleased], because the
+        // workflow cuts the file before building and by then the entry has already moved. That is
+        // also why the plugin's own convention, which reads [Unreleased], is not relied on.
+        changeNotes = pluginVersion.map { version ->
+            with(changelog) {
+                val item = getOrNull(version) ?: getUnreleased()
+                renderItem(item.withHeader(false).withEmptySections(false), Changelog.OutputType.HTML)
+            }
+        }
+
         ideaVersion {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
             // No upper bound: the plugin must not stop loading when a new IDE ships.
