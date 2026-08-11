@@ -9,11 +9,11 @@ plugins {
 kotlin { jvmToolchain(21) }
 
 dependencies {
-    implementation(project(":direnv-core"))
+    implementation(project(":core"))
     testImplementation(libs.junit)
 
     intellijPlatform {
-        create(IntelliJPlatformType.IntellijIdea, providers.gradleProperty("platformVersion")) {
+        create(IntelliJPlatformType.IntellijIdeaCommunity, providers.gradleProperty("platformVersion")) {
             useInstaller = false
         }
         bundledPlugin("org.jetbrains.plugins.terminal")

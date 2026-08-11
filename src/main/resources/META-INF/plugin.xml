@@ -4,8 +4,44 @@
     <vendor email="abstractcoderx@gmail.com" url="https://github.com/salatmaster">salatmaster</vendor>
 
     <description><![CDATA[
-        Loads the environment produced by <a href="https://direnv.net">direnv</a> and makes it
-        available to processes started by the IDE, scoped to the project and working directory.
+        <p><b>Your <code>.envrc</code> environment, everywhere the IDE runs something.</b></p>
+
+        <p>You use <a href="https://direnv.net">direnv</a>. Your JDK comes from Nix, your toolchain
+        from Devbox, your credentials from a <code>.env</code> file the shell loads for you. In the
+        terminal, everything works &mdash; and then you open the IDE, and none of it exists.</p>
+
+        <p>This plugin makes that environment available to the things the IDE actually starts:</p>
+        <ul>
+          <li><b>Run and debug configurations</b> &mdash; every language, no per-runner support needed</li>
+          <li><b>The build process</b>, so compilation sees the same environment</li>
+          <li><b>Gradle sync, Gradle tasks and Maven</b></li>
+          <li><b>The terminal</b>, including WSL and remote environments</li>
+          <li><b>External Tools</b>, File Watchers, and processes started by other plugins</li>
+        </ul>
+
+        <p><b>Scoped to the project, not the IDE.</b> The environment is resolved per project and
+        working directory and injected as each process starts, so two projects open side by side
+        keep separate environments and a nested <code>.envrc</code> gets its own. The IDE's own
+        process environment is never modified &mdash; which is what makes the isolation real rather
+        than approximate.</p>
+
+        <p><b>It keeps itself up to date.</b> Change <code>flake.lock</code> and the environment
+        reloads &mdash; not because the plugin knows about Nix, but because direnv reports every
+        file its environment depends on and all of them are watched. Run <code>direnv allow</code>
+        in an ordinary terminal and the IDE picks it up within seconds, with no button and no
+        restart.</p>
+
+        <p><b>Security is the default, not a setting.</b> An <code>.envrc</code> is arbitrary shell
+        code, so <code>direnv allow</code> is never invoked automatically under any setting,
+        untrusted projects never execute one at all, and variable values never reach logs, run
+        configurations or any file under <code>.idea/</code>. A built-in viewer shows which
+        variables were applied by <em>name</em> &mdash; knowing that <code>PGPASSWORD</code> was set
+        is useful; writing its value into a run configuration would put it straight into git.</p>
+
+        <p>Requires <code>direnv</code> installed and on <code>PATH</code>. Implements
+        <a href="https://youtrack.jetbrains.com/issue/IJPL-11588">IJPL-11588</a>.
+        Known limitations are documented in the
+        <a href="https://github.com/salatmaster/direnv-jetbrains-plugin">README</a>.</p>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>

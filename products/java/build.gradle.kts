@@ -9,17 +9,14 @@ plugins {
 kotlin { jvmToolchain(21) }
 
 dependencies {
-    // compileOnly on purpose: the platform already ships kotlinx-serialization-json
-    // (platform/util .../xmlb/JsonHelper.kt). Bundling a second copy risks a classloader conflict.
-    compileOnly(libs.kotlinx.serialization.json)
-
+    implementation(project(":core"))
     testImplementation(libs.junit)
-    testCompileOnly(libs.kotlinx.serialization.json)
 
     intellijPlatform {
-        create(IntelliJPlatformType.IntellijIdea, providers.gradleProperty("platformVersion")) {
+        create(IntelliJPlatformType.IntellijIdeaCommunity, providers.gradleProperty("platformVersion")) {
             useInstaller = false
         }
+        bundledPlugin("com.intellij.java")
         testFramework(TestFrameworkType.Platform)
     }
 }

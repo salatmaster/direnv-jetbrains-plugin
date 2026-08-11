@@ -22,12 +22,12 @@ listOf(configurations.runtimeClasspath, configurations.testRuntimeClasspath).for
 
 dependencies {
     intellijPlatform {
-        create(IntelliJPlatformType.IntellijIdea, providers.gradleProperty("platformVersion")) {
+        create(IntelliJPlatformType.IntellijIdeaCommunity, providers.gradleProperty("platformVersion")) {
             useInstaller = false
         }
-        pluginComposedModule(implementation(project(":direnv-core")))
-        pluginComposedModule(implementation(project(":direnv-products-terminal")))
-        pluginComposedModule(implementation(project(":direnv-products-java")))
+        pluginComposedModule(implementation(project(":core")))
+        pluginComposedModule(implementation(project(":products:terminal")))
+        pluginComposedModule(implementation(project(":products:java")))
         pluginVerifier()
         zipSigner()
         testFramework(TestFrameworkType.Platform)
@@ -44,6 +44,23 @@ intellijPlatform {
         }
     }
     pluginVerification {
-        ides { recommended() }
+        ides {
+            // Community is the compile target and the lowest common denominator.
+            create(IntelliJPlatformType.IntellijIdeaCommunity, providers.gradleProperty("platformVersion"))
+            // PyCharm Community has no Java plugin, so this proves the optional product modules
+            // really are optional and the plugin loads in IDEs beyond IDEA.
+            create(IntelliJPlatformType.PyCharmCommunity, providers.gradleProperty("platformVersion"))
+        }
+    }
+
+    // Credentials come from the environment so nothing sensitive lives in the repository.
+    signing {
+        certificateChain = providers.environmentVariable("CERTIFICATE_CHAIN")
+        privateKey = providers.environmentVariable("PRIVATE_KEY")
+        password = providers.environmentVariable("PRIVATE_KEY_PASSWORD")
+    }
+
+    publishing {
+        token = providers.environmentVariable("PUBLISH_TOKEN")
     }
 }

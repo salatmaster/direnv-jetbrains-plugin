@@ -16,13 +16,9 @@ dependencyResolutionManagement {
 
 rootProject.name = "direnv"
 
+// Project paths match directory paths, so ":products:terminal" is exactly where the code lives.
 include(
-    "modules/core",
-    "modules/products/terminal",
-    "modules/products/java",
+    "core",
+    "products:terminal",
+    "products:java",
 )
-
-// Turns "modules/core" into the project name ":direnv-core".
-rootProject.children.forEach {
-    it.name = it.name.replaceFirst("modules/", "direnv-").replace("/", "-")
-}

@@ -1,100 +1,112 @@
 # direnv for JetBrains IDEs
 
-Loads the environment produced by [direnv](https://direnv.net) and makes it available to processes
-the IDE starts — run/debug configurations, the build process, Gradle and Maven, External Tools and
-the terminal — scoped to the project and the working directory.
+**Your `.envrc` environment, everywhere the IDE runs something.** Run configurations, the build
+process, Gradle, Maven, External Tools and the terminal — scoped to the project, reloaded
+automatically, and never leaking your secrets.
 
-Implements [IJPL-11588](https://youtrack.jetbrains.com/issue/IJPL-11588).
-[direnv-vscode](https://github.com/direnv/direnv-vscode) was used as the reference implementation
-for direnv's behaviour.
+Implements [IJPL-11588](https://youtrack.jetbrains.com/issue/IJPL-11588), open since 2023 with 83
+votes. [direnv-vscode](https://github.com/direnv/direnv-vscode) served as the reference for
+direnv's behaviour.
 
-## Status
+---
 
-Under active development. Working today:
+## The problem
 
-- the environment loads when a project opens;
-- it is injected into processes the IDE starts, including run/debug, the JPS build process,
-  Gradle sync and Maven, and External Tools;
-- it is applied to terminal sessions;
-- it reloads automatically when any file direnv depends on changes — not only `.envrc`, but also
-  `flake.nix`, `flake.lock`, `.env`, and direnv's own allow/deny stamps, so a `direnv allow` typed
-  in an external terminal is picked up;
-- the status bar shows whether an environment is active, blocked or failing, with actions to
-  reload, open, allow or block, and a viewer listing the applied variable names;
-- `.envrc` files are never approved automatically, and untrusted projects never run direnv.
+You use [direnv](https://direnv.net). Your JDK comes from Nix, your toolchain from Devbox, your
+credentials from a `.env` file the shell loads for you. In the terminal, everything works.
 
-Not implemented yet: SDK and toolchain detection, Gradle daemon invalidation, and release
-automation. That is milestone 3.
+Then you open the IDE, and none of it exists. So you either copy variables into every run
+configuration by hand and keep them in sync forever, or you launch the IDE from a shell where
+direnv has already run — and then you can only ever have **one** project open, because that
+environment is global to the process.
 
-## How it works
+Both workarounds appear, almost word for word, in the comments on IJPL-11588.
 
-One extension point does most of the work. `com.intellij.commandLineEnvCustomizer` is invoked from
-`GeneralCommandLine.setupEnvironment()`, and nearly everything the IDE launches goes through
-`GeneralCommandLine` — including the JPS build process and, via `LocalTargetEnvironment`, Gradle
-sync and Maven. That is why this plugin does not need per-runner support for each language.
+## What this plugin does
 
-The terminal is the exception: it starts its shell through the EEL API or `PtyProcessBuilder`,
-bypassing `GeneralCommandLine`, so it is handled separately through
-`org.jetbrains.plugins.terminal.shellExecOptionsCustomizer`.
+| Where | Works |
+|---|---|
+| Run/Debug configurations — every language | yes |
+| Build process (compilation) | yes |
+| Gradle sync, Gradle tasks, Maven | yes |
+| Terminal | yes |
+| External Tools, File Watchers | yes |
+| Processes started by other plugins | yes |
+| Indexing and static analysis | partly — via SDK suggestion, see [Limitations](#limitations) |
 
-The environment is never applied to the IDE process itself. It is resolved per (project, working
-directory) and injected at process start, so several open projects keep separate environments and
-nested `.envrc` files work without special handling.
+The environment is resolved per **project and working directory**, then injected as each process
+starts. Two projects open side by side keep separate environments. A nested `.envrc` in a
+subdirectory gets its own. The IDE's own process environment is never modified — that is what makes
+the isolation real rather than approximate.
 
-## Requirements
+## It keeps itself up to date
 
-- A JetBrains IDE, build 261 (2026.1) or newer.
-  This is a hard requirement, not a preference: `shellExecOptionsCustomizer` first appears in 261
-  and is the only terminal hook that works correctly across EEL boundaries.
-- `direnv` installed and available on `PATH`. The plugin does not bundle it.
+Change `flake.lock`, and the environment reloads. Not because the plugin knows anything about Nix,
+but because direnv reports every file the environment depends on and the plugin watches all of
+them — `.envrc`, `flake.nix`, `.env`, `devbox.json`, whatever your setup uses.
 
-## Security
+Run `direnv allow` in an ordinary terminal, and the IDE notices within seconds and loads the
+environment. No button, no restart.
+
+## Security is the default, not a setting
 
 An `.envrc` is arbitrary shell code, so:
 
-- the plugin never runs `direnv allow` on your behalf, under any setting;
-- it does not run direnv at all in a project you have not trusted;
-- environment values are never written to logs, to run configurations, or to any file under
-  `.idea/`. The cache is in memory only, and the types that carry environment data refuse to render
-  their values.
+- **`direnv allow` is never invoked automatically** — under any setting, ever. Approval is always an
+  explicit action, and the UI offers *Open .envrc* before *Allow*, so reading comes first.
+- **Untrusted projects never run direnv at all.** Opening a repository does not execute its code.
+- **Variable values never leave memory.** Not into logs, not into run configurations, not into any
+  file under `.idea/`. The types that carry environment data refuse to render their own values, and
+  a test asserts it with a canary string.
 
-One caveat outside the plugin's control: the platform itself logs terminal environment variables
-when debug logging is enabled for the terminal category.
+Want to see what was applied? The environment viewer lists variable **names** and whether each was
+added, changed or removed. Knowing that `PGPASSWORD` was set is the useful part; its value is not,
+and materialising it into a run configuration would put it straight into git.
 
-## Known limitations
+## Requirements
 
-- **Indexing and static analysis do not use the process `PATH`.** IntelliJ resolves toolchains
-  through project SDKs and interpreters, so making `direnv`-provided tools visible to indexing
-  requires configuring an SDK. Milestone 3 will offer to do that; a plugin cannot make indexing
-  follow `PATH` directly.
-- **A running Gradle daemon may be reused with the previous environment.** Whether this actually
-  happens depends on the Gradle version: the Tooling API passes environment variables per build,
-  and Gradle forks a new daemon when they differ. The plugin deliberately does not stop daemons —
-  the only API for it is internal, stops every daemon on the machine including other projects', and
-  the problem is not confirmed. If you hit a stale environment in Gradle, stop the daemon manually
-  and please open an issue describing the setup.
-- **Plugin logic that never launches a process cannot see the environment.**
-- **WSL support is written against the documented EEL API but has not been verified on a real
-  Windows machine.** Reports and fixes are welcome.
+- A JetBrains IDE, build **261 (2026.1)** or newer — IDEA, PyCharm, GoLand, WebStorm, CLion,
+  RubyMine, PhpStorm, RustRover. Verified against IDEA Community and PyCharm Community.
+- [`direnv`](https://direnv.net/docs/installation.html) installed and available on `PATH`.
+
+The 2026.1 floor is a hard requirement rather than a preference: it is the first release whose
+terminal extension point works correctly across EEL boundaries, and without it the terminal cannot
+be supported properly.
+
+## Limitations
+
+Stated plainly, because a plugin that hides these costs you an afternoon:
+
+- **Indexing and static analysis do not follow `PATH`.** The IDE resolves toolchains through
+  project SDKs, so a JDK provided by direnv is *offered* as an SDK rather than adopted silently.
+  That is deliberate: a Nix store path can vanish after garbage collection, and rewriting your
+  project SDK at that moment would break the project with no explanation.
+- **Non-local run targets** (Docker, SSH, remote interpreters) bypass the mechanism the plugin
+  hooks into.
+- **A running Gradle daemon may reuse the previous environment.** The plugin deliberately does not
+  stop daemons: the only API is internal, it kills every daemon on the machine including other
+  projects', and the problem is unconfirmed. If you hit it, stop the daemon manually and please
+  open an issue.
+- **WSL is implemented against the documented EEL API but has not been verified on real hardware.**
+  Reports and fixes are welcome.
+- SDK suggestions currently cover Java. Go, Python and Node.js reuse the same tested resolver and
+  need only their product module.
 
 ## Building
 
 ```bash
-./gradlew buildPlugin
+./gradlew buildPlugin   # plugin ZIP in build/distributions/
+./gradlew test          # direnv is NOT required to run the tests
+./gradlew runIde        # sandbox IDE with the plugin installed
 ```
 
-The plugin ZIP is written to `build/distributions/`. Tests: `./gradlew test`. Compatibility check:
-`./gradlew verifyPlugin`.
-
-The build provisions its own JDK 21 toolchain, so a clean checkout builds without installing a
-specific JDK first.
+The build provisions its own JDK 21, so a clean checkout builds without installing anything first.
 
 ## Contributing
 
-Issues and pull requests are welcome. The codebase is organised as a core module that depends only
-on the platform, plus optional per-product modules, so support for another IDE can be added without
-touching the core.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the module layout, how to add support for another IDE,
+and the rules a change must not break. Release notes are in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
-Apache-2.0. See [LICENSE](LICENSE).
+[Apache-2.0](LICENSE).
