@@ -23,6 +23,8 @@ All notable changes to this plugin are documented here. The format follows
 - Banner over a blocked `.envrc` offering approval at the moment the file is on screen.
 - Settings page under Tools → direnv.
 - Offers the JDK provided by direnv when it differs from the project SDK.
+- Notices `direnv allow` run in an external terminal and loads the environment without any action
+  in the IDE.
 
 ### Security
 

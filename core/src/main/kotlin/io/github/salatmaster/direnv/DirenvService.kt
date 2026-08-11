@@ -120,6 +120,11 @@ class DirenvService(private val project: Project, private val scope: CoroutineSc
         is DirenvOutcome.Blocked -> {
             // Never cache a blocked result: no environment was produced, and caching one would
             // silently keep a stale environment alive after the user revoked approval.
+            //
+            // The watches are still registered. direnv reports them even when blocked, and they
+            // include the allow stamp, so approving the file in an external terminal reaches the
+            // IDE — the case where a blocked project most needs to notice a change.
+            DirenvWatchService.getInstance(project).updateWatches(workingDir, outcome.watches)
             log.info("direnv blocked: ${outcome.envrcPath}")
             DirenvState.Blocked(outcome.envrcPath)
         }

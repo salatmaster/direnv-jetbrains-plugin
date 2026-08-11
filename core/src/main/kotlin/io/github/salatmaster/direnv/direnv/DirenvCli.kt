@@ -31,14 +31,21 @@ class DirenvCli(
         }
 
         DirenvExportParser.findBlockedPath(result.stderr)?.let { blockedPath ->
-            // direnv still prints its internal DIRENV_* bookkeeping here; it is deliberately dropped,
-            // since no usable environment was produced.
-            return DirenvOutcome.Blocked(blockedPath)
+            // The exported variables are dropped: no usable environment was produced. The watch
+            // list is kept, because it contains the allow stamp and lets us notice approval
+            // granted outside the IDE.
+            val watches = DirenvWatchesCodec.decode(
+                DirenvExportParser.parseEntries(result.stdout)["DIRENV_WATCHES"].orEmpty()
+            )
+            return DirenvOutcome.Blocked(blockedPath, watches)
         }
 
         if (result.exitCode != 0) {
             log.debug("direnv export failed with exit code ${result.exitCode}")
-            return DirenvOutcome.Failed(result.stderr.trim(), result.exitCode)
+            return DirenvOutcome.Failed(
+                DirenvExportParser.stripAnsi(result.stderr).trim(),
+                result.exitCode,
+            )
         }
 
         val entries = DirenvExportParser.parseEntries(result.stdout)
@@ -78,7 +85,7 @@ class DirenvCli(
         if (result.exitCode == 0) {
             DirenvOutcome.Loaded(DirenvEnvironment.empty(workingDir))
         } else {
-            DirenvOutcome.Failed(result.stderr.trim(), result.exitCode)
+            DirenvOutcome.Failed(DirenvExportParser.stripAnsi(result.stderr).trim(), result.exitCode)
         }
     } catch (e: DirenvExecutableNotFoundException) {
         DirenvOutcome.ExecutableNotFound(e.executable)
@@ -91,7 +98,9 @@ class DirenvCli(
             executable = executableProvider(),
             args = args,
             workingDir = workingDir,
-            // TERM=dumb stops direnv from emitting ANSI colour codes, which would corrupt parsing.
+            // TERM=dumb keeps direnv from assuming an interactive terminal. It does NOT suppress
+            // colour: direnv 2.37.1 still emits escape codes, which is why stderr is stripped
+            // before use rather than trusted to be plain.
             extraEnv = mapOf("TERM" to "dumb") + extraEnvProvider(),
             timeoutMs = timeoutMsProvider(),
         )

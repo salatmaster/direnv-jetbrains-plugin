@@ -19,6 +19,13 @@ object DirenvExportParser {
     private val BLOCKED = Regex("""direnv: error (?<path>.+) is blocked""")
 
     /**
+     * direnv colourises stderr regardless of TERM — verified against direnv 2.37.1, where
+     * `TERM=dumb direnv export json` still emits \u001B[31m around its diagnostics. Escape codes
+     * must be removed before a message is shown to the user or matched against.
+     */
+    private val ANSI = Regex("""\u001B\[[0-9;]*[a-zA-Z]""")
+
+    /**
      * Parses exported variables. A `null` JSON value maps to a `null` entry, meaning "unset".
      *
      * Malformed output yields an empty map: direnv reports failures through its exit code and
@@ -46,7 +53,10 @@ object DirenvExportParser {
         }
     }
 
+    /** Removes ANSI colour escapes so text is safe to display and to match against. */
+    fun stripAnsi(text: String): String = ANSI.replace(text, "")
+
     /** Returns the blocked `.envrc` path if stderr reports one, otherwise null. */
     fun findBlockedPath(stderr: String): String? =
-        BLOCKED.find(stderr)?.groups?.get("path")?.value?.trim()
+        BLOCKED.find(stripAnsi(stderr))?.groups?.get("path")?.value?.trim()
 }

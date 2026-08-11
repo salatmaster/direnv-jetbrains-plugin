@@ -11,8 +11,13 @@ sealed interface DirenvOutcome {
     /** direnv produced an environment. It may be empty when the directory has no .envrc. */
     data class Loaded(val environment: DirenvEnvironment) : DirenvOutcome
 
-    /** The .envrc exists but has not been approved. The user must approve it explicitly. */
-    data class Blocked(val envrcPath: String) : DirenvOutcome
+    /**
+     * The .envrc exists but has not been approved. The user must approve it explicitly.
+     *
+     * [watches] is still populated: direnv reports its watch list even when blocked, and that list
+     * contains the allow stamp. Tracking it is what lets an external `direnv allow` be noticed.
+     */
+    data class Blocked(val envrcPath: String, val watches: List<DirenvWatch> = emptyList()) : DirenvOutcome
 
     /** The configured direnv executable could not be started. */
     data class ExecutableNotFound(val executable: String) : DirenvOutcome

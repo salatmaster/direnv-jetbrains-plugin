@@ -1,6 +1,7 @@
 package io.github.salatmaster.direnv.direnv
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -73,6 +74,36 @@ class DirenvCliTest {
 
         assertTrue(failed.message.contains("syntax error"))
         assertEquals(2, failed.exitCode)
+    }
+
+    @Test
+    fun `failure messages carry no ANSI escapes into the UI`() {
+        runner.respondTo(
+            "export",
+            DirenvProcessResult(2, "", "\u001B[31mdirenv: error syntax error\u001B[0m"),
+        )
+
+        val failed = cli.export(workDir) as DirenvOutcome.Failed
+
+        assertFalse("escape code leaked into the message: ${failed.message}",
+            failed.message.contains("\u001B"))
+    }
+
+    @Test
+    fun `blocked outcome still reports the files to watch`() {
+        // direnv emits DIRENV_WATCHES even when the .envrc is blocked, and those watches include
+        // the allow stamp. Without them an external `direnv allow` would go unnoticed — exactly
+        // the case where noticing matters most.
+        val stamp = Paths.get("/home/u/.local/share/direnv/allow/abc")
+        val encoded = DirenvWatchesCodec.encode(listOf(DirenvWatch(stamp, 0L, true)))
+        runner.respondTo(
+            "export",
+            DirenvProcessResult(1, """{"DIRENV_WATCHES":"$encoded"}""", "direnv: error /p/.envrc is blocked."),
+        )
+
+        val blocked = cli.export(workDir) as DirenvOutcome.Blocked
+
+        assertEquals(listOf(DirenvWatch(stamp, 0L, true)), blocked.watches)
     }
 
     @Test

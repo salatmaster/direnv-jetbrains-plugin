@@ -48,6 +48,11 @@ them — `.envrc`, `flake.nix`, `.env`, `devbox.json`, whatever your setup uses.
 Run `direnv allow` in an ordinary terminal, and the IDE notices within seconds and loads the
 environment. No button, no restart.
 
+Detection combines file system events with a two-second poll of the watched files. The poll is not
+redundant: the IDE delivers no events at all for direnv's allow stamps under
+`~/.local/share/direnv`, so approval granted in a terminal would otherwise go unnoticed. direnv
+itself detects changes the same way, by comparing modification times.
+
 ## Security is the default, not a setting
 
 An `.envrc` is arbitrary shell code, so:

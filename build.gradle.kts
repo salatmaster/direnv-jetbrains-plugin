@@ -34,6 +34,23 @@ dependencies {
     }
 }
 
+// Developer convenience: ./gradlew runIde -PsampleProject=/path/to/project opens that project
+// directly, so the plugin can be exercised without clicking through the welcome screen.
+tasks.runIde {
+    providers.gradleProperty("sampleProject").orNull?.let { path ->
+        args(path)
+        // The plugin refuses to run direnv in an untrusted project, which is the point; this
+        // skips the trust dialog for a throwaway sandbox only.
+        systemProperty("idea.trust.all.projects", "true")
+        // A fresh sandbox otherwise blocks on the end-user agreement dialog before any plugin
+        // code runs, which makes the sandbox useless for exercising the plugin.
+        systemProperty("jb.consents.confirmation.enabled", "false")
+        systemProperty("jb.privacy.policy.text", "<!--999.999-->")
+        systemProperty("idea.initially.ask.config", "never")
+        systemProperty("idea.log.debug.categories", "io.github.salatmaster.direnv")
+    }
+}
+
 intellijPlatform {
     pluginConfiguration {
         version = providers.gradleProperty("pluginVersion")

@@ -9,6 +9,7 @@ import io.github.salatmaster.direnv.direnv.DirenvWatchesCodec
 import io.github.salatmaster.direnv.direnv.FakeDirenvProcessRunner
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -43,10 +44,19 @@ class DirenvWatchServiceTest : BasePlatformTestCase() {
         }
     }
 
+    /**
+     * Builds an export payload whose watches point at files that actually exist, recording their
+     * real modification time. The service polls watched files, so fictional paths would look like
+     * a change on the first tick and trigger reloads unrelated to what a test is asserting.
+     */
     private fun exportWith(vararg watched: String): String {
-        val encoded = DirenvWatchesCodec.encode(
-            watched.map { DirenvWatch(Paths.get(it), 0L, true) }
-        )
+        val entries = watched.map { raw ->
+            val path = Paths.get(raw)
+            path.parent?.let { Files.createDirectories(it) }
+            if (!Files.exists(path)) Files.writeString(path, "fixture")
+            DirenvWatch(path, Files.getLastModifiedTime(path).toInstant().epochSecond, true)
+        }
+        val encoded = DirenvWatchesCodec.encode(entries)
         return """{"FOO":"bar","DIRENV_WATCHES":"$encoded"}"""
     }
 
@@ -62,7 +72,7 @@ class DirenvWatchServiceTest : BasePlatformTestCase() {
     fun `test files outside the project are registered too`() = runBlocking {
         // direnv's allow stamps live under the user's data directory. Missing them is what makes
         // an external `direnv allow` go unnoticed by the IDE.
-        val stamp = "/tmp/direnv-allow-stamp-test"
+        val stamp = Files.createTempFile("direnv-allow-stamp-outside", ".test").toString()
         runner.respondTo("export", DirenvProcessResult(0, exportWith(stamp), ""))
 
         service.load(workDir, force = true)
@@ -107,6 +117,29 @@ class DirenvWatchServiceTest : BasePlatformTestCase() {
             "expected a reload after a watched file changed",
             runner.invocations.size > before,
         )
+    }
+
+    fun `test a blocked envrc still registers its allow stamp for watching`() = runBlocking {
+        // Without this, approving the .envrc in an external terminal would never reach the IDE,
+        // because a blocked project has no environment and therefore had no watches at all.
+        val stamp = Files.createTempFile("direnv-allow-stamp", ".test").toString()
+        val encoded = DirenvWatchesCodec.encode(
+            listOf(
+                DirenvWatch(
+                    Paths.get(stamp),
+                    Files.getLastModifiedTime(Paths.get(stamp)).toInstant().epochSecond,
+                    true,
+                )
+            )
+        )
+        runner.respondTo(
+            "export",
+            DirenvProcessResult(1, """{"DIRENV_WATCHES":"$encoded"}""", "direnv: error $workDir/.envrc is blocked."),
+        )
+
+        service.load(workDir, force = true)
+
+        assertTrue(watchService.watchedPaths().contains(Paths.get(stamp)))
     }
 
     fun `test watching can be disabled in settings`() = runBlocking {

@@ -16,6 +16,8 @@ import java.nio.file.Paths
  */
 class DirenvVfsListener : AsyncFileListener {
 
+    private val log = com.intellij.openapi.diagnostic.Logger.getInstance(DirenvVfsListener::class.java)
+
     override fun prepareChange(events: MutableList<out VFileEvent>): AsyncFileListener.ChangeApplier? {
         val paths = events.mapNotNullTo(mutableSetOf()) { event ->
             runCatching { Paths.get(event.path) }.getOrNull()
@@ -27,6 +29,7 @@ class DirenvVfsListener : AsyncFileListener {
 
         return object : AsyncFileListener.ChangeApplier {
             override fun afterVfsChange() {
+                log.debug("VFS change: ${paths.size} paths, ${projects.size} projects")
                 // Only schedules work: this runs inside a write action, so it must return fast.
                 for (project in projects) {
                     if (project.isDisposed) continue

@@ -57,6 +57,27 @@ class DirenvExportParserTest {
     }
 
     @Test
+    fun `extracts the blocked path from colourised stderr`() {
+        // direnv colourises stderr even with TERM=dumb, verified against direnv 2.37.1.
+        val stderr = "\u001B[31mdirenv: error /home/u/project/.envrc is blocked. " +
+            "Run `direnv allow` to approve its content\u001B[0m"
+
+        assertEquals("/home/u/project/.envrc", DirenvExportParser.findBlockedPath(stderr))
+    }
+
+    @Test
+    fun `strips ANSI escapes so messages shown to the user are readable`() {
+        val coloured = "\u001B[31mdirenv: error syntax error\u001B[0m"
+
+        assertEquals("direnv: error syntax error", DirenvExportParser.stripAnsi(coloured).trim())
+    }
+
+    @Test
+    fun `stripAnsi leaves plain text untouched`() {
+        assertEquals("plain message", DirenvExportParser.stripAnsi("plain message"))
+    }
+
+    @Test
     fun `returns null when stderr describes a different problem`() {
         assertNull(DirenvExportParser.findBlockedPath("direnv: error some other failure"))
         assertNull(DirenvExportParser.findBlockedPath(""))
