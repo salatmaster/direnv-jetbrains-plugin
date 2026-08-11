@@ -26,6 +26,7 @@ dependencies {
             useInstaller = false
         }
         pluginComposedModule(implementation(project(":direnv-core")))
+        pluginComposedModule(implementation(project(":direnv-products-terminal")))
         pluginVerifier()
         zipSigner()
         testFramework(TestFrameworkType.Platform)

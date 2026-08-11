@@ -26,6 +26,8 @@ class DirenvCli(
             execute(listOf("export", "json"), workingDir)
         } catch (e: DirenvExecutableNotFoundException) {
             return DirenvOutcome.ExecutableNotFound(e.executable)
+        } catch (e: DirenvProcessFailedException) {
+            return DirenvOutcome.Failed(e.message.orEmpty(), -1)
         }
 
         DirenvExportParser.findBlockedPath(result.stderr)?.let { blockedPath ->
@@ -66,6 +68,8 @@ class DirenvCli(
             .stdout.trim().ifEmpty { null }
     } catch (e: DirenvExecutableNotFoundException) {
         null
+    } catch (e: DirenvProcessFailedException) {
+        null
     }
 
     private fun mutateApproval(command: String, envrcPath: Path): DirenvOutcome = try {
@@ -78,6 +82,8 @@ class DirenvCli(
         }
     } catch (e: DirenvExecutableNotFoundException) {
         DirenvOutcome.ExecutableNotFound(e.executable)
+    } catch (e: DirenvProcessFailedException) {
+        DirenvOutcome.Failed(e.message.orEmpty(), -1)
     }
 
     private fun execute(args: List<String>, workingDir: Path): DirenvProcessResult =

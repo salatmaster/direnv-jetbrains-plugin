@@ -83,6 +83,18 @@ class DirenvCliTest {
     }
 
     @Test
+    fun `export distinguishes an unrunnable executable from a missing one`() {
+        runner.processFails = true
+
+        val outcome = cli.export(workDir)
+
+        // Reporting this as ExecutableNotFound would send the user to the installation guide for
+        // a problem that has nothing to do with installation.
+        assertTrue(outcome is DirenvOutcome.Failed)
+        assertTrue((outcome as DirenvOutcome.Failed).message.contains("cannot start process"))
+    }
+
+    @Test
     fun `export of a directory without envrc yields an empty environment`() {
         runner.respondTo("export", DirenvProcessResult(0, "", ""))
 

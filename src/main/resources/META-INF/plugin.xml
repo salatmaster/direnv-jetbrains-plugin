@@ -13,5 +13,17 @@
     <extensions defaultExtensionNs="com.intellij">
         <projectService serviceImplementation="io.github.salatmaster.direnv.settings.DirenvSettings"/>
         <projectService serviceImplementation="io.github.salatmaster.direnv.DirenvService"/>
+
+        <!-- Invoked from GeneralCommandLine.setupEnvironment(), so this single registration
+             covers run/debug, the JPS build process, Gradle sync, Maven and External Tools. -->
+        <commandLineEnvCustomizer
+            implementation="io.github.salatmaster.direnv.inject.DirenvCommandLineEnvCustomizer"/>
+
+        <!-- The customizer above serves cache only, so the cache must be warmed on project open. -->
+        <postStartupActivity implementation="io.github.salatmaster.direnv.DirenvStartupActivity"/>
     </extensions>
+
+    <!-- Terminal needs its own hook: the shell is started through the EEL API or
+         PtyProcessBuilder, bypassing GeneralCommandLine entirely. -->
+    <depends optional="true" config-file="direnv-terminal.xml">org.jetbrains.plugins.terminal</depends>
 </idea-plugin>

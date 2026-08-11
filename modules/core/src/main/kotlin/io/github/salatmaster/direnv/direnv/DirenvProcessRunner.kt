@@ -13,6 +13,16 @@ class DirenvExecutableNotFoundException(val executable: String) :
     RuntimeException("direnv executable not found: $executable")
 
 /**
+ * The executable exists but could not be run to completion, e.g. it is not executable, the
+ * timeout elapsed, or the process was killed.
+ *
+ * Distinct from [DirenvExecutableNotFoundException] on purpose: reporting every launch failure as
+ * "direnv not found" would send users to the installation guide for a problem that has nothing to
+ * do with installation.
+ */
+class DirenvProcessFailedException(message: String, cause: Throwable?) : RuntimeException(message, cause)
+
+/**
  * Seam over process execution.
  *
  * Exists so the CLI and service layers can be tested without direnv installed and without
@@ -65,9 +75,31 @@ class GeneralCommandLineRunner : DirenvProcessRunner {
         } catch (e: IOException) {
             throw DirenvExecutableNotFoundException(executable)
         } catch (e: ExecutionException) {
-            throw DirenvExecutableNotFoundException(executable)
+            // ExecutionException covers both "cannot start" and "started but failed", so the
+            // distinction has to come from the cause rather than from the exception type.
+            if (isMissingExecutable(e)) {
+                throw DirenvExecutableNotFoundException(executable)
+            }
+            throw DirenvProcessFailedException("Failed to run $executable: ${e.message}", e)
         }
 
         return DirenvProcessResult(output.exitCode, output.stdout, output.stderr)
+    }
+
+    /** True when the failure chain indicates the binary itself could not be located. */
+    private fun isMissingExecutable(e: Throwable): Boolean {
+        var cause: Throwable? = e
+        while (cause != null) {
+            if (cause is java.io.FileNotFoundException) return true
+            val message = cause.message.orEmpty()
+            if (message.contains("No such file or directory") ||
+                message.contains("CreateProcess error=2") ||
+                message.contains("cannot run program", ignoreCase = true)
+            ) {
+                return true
+            }
+            cause = cause.cause
+        }
+        return false
     }
 }
