@@ -52,6 +52,17 @@ class DirenvCli(
         val watches = DirenvWatchesCodec.decode(entries["DIRENV_WATCHES"].orEmpty())
         val rcPath = entries["DIRENV_FILE"]?.let { runCatching { Paths.get(it) }.getOrNull() }
 
+        // A denied .envrc exits 0 and exports nothing, so the exit code cannot tell it apart from a
+        // directory whose .envrc legitimately produces no variables. direnv's own deny stamp can:
+        // it is reported in the watch list, and it exists only while approval is revoked.
+        //
+        // Requiring the rc path keeps the outcome actionable — without a file to name, there is
+        // nothing for the user to allow, and Loaded describes the result just as well.
+        if (rcPath != null && watches.any { it.exists && isDenyStamp(it.path) }) {
+            log.debug("direnv reports an existing deny stamp for $rcPath")
+            return DirenvOutcome.Denied(rcPath.toString(), watches)
+        }
+
         return DirenvOutcome.Loaded(
             DirenvEnvironment(
                 entries = entries,
@@ -61,6 +72,19 @@ class DirenvCli(
                 loadedAt = Instant.now(),
             )
         )
+    }
+
+    /**
+     * Recognises direnv's deny stamp, `<data dir>/direnv/deny/<hash of the rc path>`.
+     *
+     * Anchored on both directory names rather than on "deny" alone: a project is free to watch a
+     * file under some unrelated deny/ directory, and mistaking that for a revoked approval would
+     * hide a perfectly good environment.
+     */
+    private fun isDenyStamp(path: Path): Boolean {
+        val denyDir = path.parent ?: return false
+        val direnvDir = denyDir.parent ?: return false
+        return denyDir.fileName?.toString() == "deny" && direnvDir.fileName?.toString() == "direnv"
     }
 
     /** Approves an .envrc. Only ever called in response to an explicit user action. */

@@ -33,6 +33,7 @@ Both workarounds appear, almost word for word, in the comments on IJPL-11588.
 | Gradle sync, Gradle tasks, Maven | yes |
 | Terminal | yes |
 | External Tools, File Watchers | yes |
+| Git hooks — `pre-commit` and the rest, when you commit from the IDE | yes |
 | Processes started by other plugins | yes |
 | Indexing and static analysis | partly — via SDK suggestion, see [Limitations](#limitations) |
 
@@ -70,6 +71,60 @@ Want to see what was applied? The environment viewer lists variable **names** an
 added, changed or removed. Knowing that `PGPASSWORD` was set is the useful part; its value is not,
 and materialising it into a run configuration would put it straight into git.
 
+## How it compares
+
+Four other direnv plugins are published on the JetBrains Marketplace. The table is built from their
+own Marketplace descriptions and, where the source is public, from their code — checked in August
+2026 against the versions current then. A dash means the plugin does not offer or document the
+capability, not that it was tested and failed. Corrections are welcome as issues.
+
+| | direnv&nbsp;Everywhere | [better_direnv][cmp-bd] | [DirEnv&nbsp;Pro][cmp-pro] | [Direnv][cmp-d] | [Direnv&nbsp;Loader][cmp-dl] |
+|---|:--:|:--:|:--:|:--:|:--:|
+| **Where the environment lands** | | | | | |
+| Run/Debug configurations | every type | six languages ¹ | — | every type | every type |
+| Terminal | ✅ | — | — | — | — |
+| Build process (compilation) | ✅ | — | — | — | — |
+| Gradle sync, Maven import | ✅ | — | — | run configs only | Gradle tasks |
+| External Tools, other plugins' processes | ✅ | — | — | — | — |
+| A toolchain from direnv offered as project SDK | Java | — | — | — | — |
+| **Scope** | | | | | |
+| Projects side by side keep separate environments | ✅ | — | — | — | — |
+| An `.envrc` below the project root | ✅ | — | root only | by hand ² | — |
+| **Staying current** | | | | | |
+| Reloads on `flake.lock`, `.env`, … (`DIRENV_WATCHES`) | ✅ | discarded ³ | `.envrc` on save | — | — |
+| Notices `direnv allow` run in a terminal | ✅ | — | — | — | — |
+| Applies the variables direnv *unsets* | ✅ | — | — | — | — |
+| **Security** | | | | | |
+| `direnv allow` is never run for you | guaranteed | opt-in auto-allow | — | — | opt-in auto-allow |
+| Nothing executes in an untrusted project | ✅ | — | — | — | — |
+| Values stay out of run configs and `.idea/` | ✅ | ✅ | — | written in ⁴ | ✅ |
+| **Day to day** | | | | | |
+| Nothing to switch on per run configuration | ✅ | a checkbox each ⁵ | load by hand | ✅ | a checkbox each ⁵ |
+| Current state visible at a glance | status bar, banner | notifications | — | notifications | notifications |
+| Applied variables listed by name | ✅ | — | — | with values ⁴ | — |
+| Executable, timeout and extra env configurable | ✅ | hardcoded ⁶ | — | executable only | — |
+
+¹ Java, Go, Node.js, Python, PHP and Ruby. Its description notes that "each run configuration type
+needs to be added manually", and the source carries one extension class per product — that is the
+cost this plugin avoids by hooking the platform below the run configuration instead of above it.
+² The root `.envrc` is loaded automatically; any other one is imported through a context-menu action.
+³ It deletes `DIRENV_WATCHES` from the exported environment, so nothing outside `.envrc` — a
+`flake.lock`, a `.env`, an allow stamp — can trigger a reload.
+⁴ By design: values are merged into the Environment Variables field of every run configuration,
+where they are visible and editable — and saved with the configuration.
+⁵ Per run configuration, so a newly created one starts without the environment until you remember.
+⁶ It invokes `direnv` by name, with no setting to point at another binary; its per-configuration
+settings are the two checkboxes above.
+
+**What they do that this plugin does not.** better_direnv registers `.envrc` as a shell file type,
+so the file itself gets syntax highlighting; here that is left to the Shell Script plugin. It has
+also been maintained far longer than this one.
+
+[cmp-bd]: https://plugins.jetbrains.com/plugin/19275-better-direnv
+[cmp-pro]: https://plugins.jetbrains.com/plugin/28160-direnv-pro
+[cmp-d]: https://plugins.jetbrains.com/plugin/30539-direnv
+[cmp-dl]: https://plugins.jetbrains.com/plugin/30187-direnv-loader
+
 ## Requirements
 
 - A JetBrains IDE, build **261 (2026.1)** or newer — IDEA, PyCharm, GoLand, WebStorm, CLion,
@@ -84,6 +139,14 @@ be supported properly.
 
 Stated plainly, because a plugin that hides these costs you an afternoon:
 
+- **The environment has to be loaded already.** Injection reads what is cached and never starts
+  direnv itself, so a process launched before the first load finishes — or in a project you have
+  not trusted, or whose `.envrc` is still blocked — starts without it, silently. Opening the
+  project triggers the load, so in practice the cache is warm long before you run anything.
+- **Git hooks run only if the IDE is told to run them.** The commit options carry a *Run Git hooks*
+  checkbox; with it off no hook runs at all, and no environment can reach one. That is the IDE's
+  setting rather than this plugin's, but it is the first thing to check when a hook does not see
+  what you expect.
 - **Indexing and static analysis do not follow `PATH`.** The IDE resolves toolchains through
   project SDKs, so a JDK provided by direnv is *offered* as an SDK rather than adopted silently.
   That is deliberate: a Nix store path can vanish after garbage collection, and rewriting your

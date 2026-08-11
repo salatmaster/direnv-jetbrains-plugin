@@ -28,16 +28,25 @@ class DirenvEditorBanner : EditorNotificationProvider {
         if (!DirenvGuard.mayRun(project)) return null
 
         val state = DirenvService.getInstance(project).state()
-        val blocked = state as? DirenvState.Blocked ?: return null
+        val (envrcPath, message) = when (state) {
+            is DirenvState.Blocked ->
+                state.envrcPath to "This .envrc is blocked. direnv will not run it until you allow it."
+
+            is DirenvState.Denied ->
+                state.envrcPath to
+                    "Approval for this .envrc was revoked. direnv will not run it until you allow it again."
+
+            else -> return null
+        }
 
         // Only warn about the file the user is actually looking at.
-        val blockedPath = runCatching { Paths.get(blocked.envrcPath).toAbsolutePath().normalize() }.getOrNull()
+        val blockedPath = runCatching { Paths.get(envrcPath).toAbsolutePath().normalize() }.getOrNull()
         val openedPath = runCatching { file.toNioPath().toAbsolutePath().normalize() }.getOrNull()
         if (blockedPath != null && openedPath != null && blockedPath != openedPath) return null
 
         return Function { _ ->
             EditorNotificationPanel(EditorNotificationPanel.Status.Warning).apply {
-                text = "This .envrc is blocked. direnv will not run it until you allow it."
+                text = message
                 createActionLabel("Allow") {
                     val workingDir = projectWorkingDir(project) ?: return@createActionLabel
                     val envrc = blockedPath ?: return@createActionLabel

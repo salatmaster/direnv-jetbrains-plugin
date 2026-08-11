@@ -66,6 +66,16 @@ data class DirenvStatusPresentation(
                 kind = Kind.BLOCKED,
             )
 
+            // Deliberately the same wording and kind as Blocked: to the user both mean "direnv
+            // will not run this until you allow it", and the plugin's own action is called Block.
+            // Only the tooltip distinguishes how the file got there.
+            is DirenvState.Denied -> DirenvStatusPresentation(
+                text = "direnv blocked",
+                tooltip = "direnv: approval for ${state.envrcPath} was revoked.\n" +
+                    "Allow it again to load the environment.",
+                kind = Kind.BLOCKED,
+            )
+
             is DirenvState.Failed -> DirenvStatusPresentation(
                 text = "direnv failed",
                 tooltip = "direnv failed: ${state.message}",

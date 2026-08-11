@@ -19,6 +19,16 @@ sealed interface DirenvOutcome {
      */
     data class Blocked(val envrcPath: String, val watches: List<DirenvWatch> = emptyList()) : DirenvOutcome
 
+    /**
+     * Approval was explicitly revoked with `direnv deny`.
+     *
+     * direnv does not report this as an error: `direnv export json` exits 0 and returns an empty
+     * environment, which is indistinguishable from an .envrc that legitimately exports nothing.
+     * The difference is in the watch list — direnv reports its deny stamp there, and the stamp
+     * exists only while the file is denied.
+     */
+    data class Denied(val envrcPath: String, val watches: List<DirenvWatch> = emptyList()) : DirenvOutcome
+
     /** The configured direnv executable could not be started. */
     data class ExecutableNotFound(val executable: String) : DirenvOutcome
 

@@ -6,6 +6,25 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The status bar menu works. Every entry in it was disabled and *Allow This .envrc* was missing
+  altogether: the popup was built without a data context, so the actions could not resolve the
+  project they belong to, and the one that hides itself when unavailable hid itself always. The
+  same actions under Tools → direnv were never affected.
+
+- A revoked approval is reported as revoked. `direnv deny` exits successfully and exports an empty
+  environment, which is exactly what an `.envrc` that sets no variables looks like, so the status
+  bar read *loaded, no variables changed* moments after approval was withdrawn. direnv lists its
+  own deny stamp in `DIRENV_WATCHES` and that stamp exists only while the file is denied, so the
+  state is now read from there — at no extra cost, since that watch list was already being parsed.
+
+- *Allow This .envrc* is greyed out while the file is already approved, where it used to re-run
+  direnv and look like nothing had happened, and *Block This .envrc* is greyed out when there is no
+  `.envrc` to revoke, where it used to offer itself and silently do nothing. Both stay visible
+  rather than disappearing: an entry that comes and goes shifts every row below it, and in this
+  menu that would put *Block* where the pointer was aimed at *Show*.
+
 ## [0.1.1] - 2026-08-11
 
 ### Changed
