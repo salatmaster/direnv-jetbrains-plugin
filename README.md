@@ -67,7 +67,12 @@ when debug logging is enabled for the terminal category.
   through project SDKs and interpreters, so making `direnv`-provided tools visible to indexing
   requires configuring an SDK. Milestone 3 will offer to do that; a plugin cannot make indexing
   follow `PATH` directly.
-- **A running Gradle daemon may be reused with the previous environment.**
+- **A running Gradle daemon may be reused with the previous environment.** Whether this actually
+  happens depends on the Gradle version: the Tooling API passes environment variables per build,
+  and Gradle forks a new daemon when they differ. The plugin deliberately does not stop daemons —
+  the only API for it is internal, stops every daemon on the machine including other projects', and
+  the problem is not confirmed. If you hit a stale environment in Gradle, stop the daemon manually
+  and please open an issue describing the setup.
 - **Plugin logic that never launches a process cannot see the environment.**
 - **WSL support is written against the documented EEL API but has not been verified on a real
   Windows machine.** Reports and fixes are welcome.

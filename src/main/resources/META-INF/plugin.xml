@@ -45,6 +45,9 @@
          PtyProcessBuilder, bypassing GeneralCommandLine entirely. -->
     <depends optional="true" config-file="direnv-terminal.xml">org.jetbrains.plugins.terminal</depends>
 
+    <!-- Optional: only loads in IDEs that have Java support. -->
+    <depends optional="true" config-file="direnv-java.xml">com.intellij.java</depends>
+
     <actions>
         <group id="direnv.actions" text="direnv" popup="true">
             <action id="direnv.reload"

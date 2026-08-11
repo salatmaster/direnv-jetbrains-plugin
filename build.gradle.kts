@@ -27,6 +27,7 @@ dependencies {
         }
         pluginComposedModule(implementation(project(":direnv-core")))
         pluginComposedModule(implementation(project(":direnv-products-terminal")))
+        pluginComposedModule(implementation(project(":direnv-products-java")))
         pluginVerifier()
         zipSigner()
         testFramework(TestFrameworkType.Platform)

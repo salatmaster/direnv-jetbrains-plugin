@@ -16,7 +16,11 @@ dependencyResolutionManagement {
 
 rootProject.name = "direnv"
 
-include("modules/core", "modules/products/terminal")
+include(
+    "modules/core",
+    "modules/products/terminal",
+    "modules/products/java",
+)
 
 // Turns "modules/core" into the project name ":direnv-core".
 rootProject.children.forEach {
