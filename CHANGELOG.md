@@ -6,6 +6,12 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Released archives are signed. Installing an unsigned plugin makes the IDE warn that the author
+  cannot be verified; that warning is gone, for the archive attached to the GitHub release as well
+  as the one on the Marketplace.
+
 ## [0.1.2] - 2026-08-11
 
 ### Fixed

@@ -79,13 +79,17 @@ jobs:
           name: plugin-verifier-report
           path: build/reports/pluginVerifier
 
-      - name: Build the plugin
+      # signPlugin depends on buildPlugin, so this both builds and signs. Signing has to happen
+      # before the GitHub release is created, or the archive attached to the release would be the
+      # unsigned one while only the Marketplace received a signed build — installing from GitHub
+      # would then warn about an unknown author for no reason.
+      - name: Build and sign the plugin
         env:
           PLUGIN_VERSION: ${{ inputs.version }}
           CERTIFICATE_CHAIN: ${{ secrets.PLUGIN_CERTIFICATE_CHAIN }}
           PRIVATE_KEY: ${{ secrets.PLUGIN_PRIVATE_KEY }}
           PRIVATE_KEY_PASSWORD: ${{ secrets.PLUGIN_PRIVATE_KEY_PASSWORD }}
-        run: ./gradlew buildPlugin --no-daemon
+        run: ./gradlew signPlugin --no-daemon
 
       # Nothing has been pushed until here, so a red build costs a workflow run and
       # nothing else. The push of main fails rather than rebasing if someone landed a
@@ -111,10 +115,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
         run: |
+          # Named explicitly: signPlugin leaves the unsigned archive next to the signed one, and a
+          # bare *.zip would attach both, letting people download the unsigned build by accident.
           gh release create "v$VERSION" \
             --title "v$VERSION" \
             --generate-notes \
-            build/distributions/*.zip
+            build/distributions/*-signed.zip
 
       # A separate, deliberate step: a bad release on the Marketplace cannot be withdrawn
       # as easily as a tag, so releasing alone never publishes there. Set the repository
