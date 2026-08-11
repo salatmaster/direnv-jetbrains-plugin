@@ -1,0 +1,6 @@
+<idea-plugin require-restart="false">
+    <extensions defaultExtensionNs="org.jetbrains.plugins.terminal">
+        <shellExecOptionsCustomizer
+            implementation="io.github.salatmaster.direnv.terminal.DirenvShellExecOptionsCustomizer"/>
+    </extensions>
+</idea-plugin>

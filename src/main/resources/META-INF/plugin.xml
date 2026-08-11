@@ -1,0 +1,109 @@
+<idea-plugin url="https://github.com/salatmaster/direnv-jetbrains-plugin" require-restart="false">
+    <id>io.github.salatmaster.direnv</id>
+    <name>direnv</name>
+    <vendor email="abstractcoderx@gmail.com" url="https://github.com/salatmaster">salatmaster</vendor>
+
+    <description><![CDATA[
+        <p><b>Your <code>.envrc</code> environment, everywhere the IDE runs something.</b></p>
+
+        <p>You use <a href="https://direnv.net">direnv</a>. Your JDK comes from Nix, your toolchain
+        from Devbox, your credentials from a <code>.env</code> file the shell loads for you. In the
+        terminal, everything works &mdash; and then you open the IDE, and none of it exists.</p>
+
+        <p>This plugin makes that environment available to the things the IDE actually starts:</p>
+        <ul>
+          <li><b>Run and debug configurations</b> &mdash; every language, no per-runner support needed</li>
+          <li><b>The build process</b>, so compilation sees the same environment</li>
+          <li><b>Gradle sync, Gradle tasks and Maven</b></li>
+          <li><b>The terminal</b>, including WSL and remote environments</li>
+          <li><b>External Tools</b>, File Watchers, and processes started by other plugins</li>
+        </ul>
+
+        <p><b>Scoped to the project, not the IDE.</b> The environment is resolved per project and
+        working directory and injected as each process starts, so two projects open side by side
+        keep separate environments and a nested <code>.envrc</code> gets its own. The IDE's own
+        process environment is never modified &mdash; which is what makes the isolation real rather
+        than approximate.</p>
+
+        <p><b>It keeps itself up to date.</b> Change <code>flake.lock</code> and the environment
+        reloads &mdash; not because the plugin knows about Nix, but because direnv reports every
+        file its environment depends on and all of them are watched. Run <code>direnv allow</code>
+        in an ordinary terminal and the IDE picks it up within seconds, with no button and no
+        restart.</p>
+
+        <p><b>Security is the default, not a setting.</b> An <code>.envrc</code> is arbitrary shell
+        code, so <code>direnv allow</code> is never invoked automatically under any setting,
+        untrusted projects never execute one at all, and variable values never reach logs, run
+        configurations or any file under <code>.idea/</code>. A built-in viewer shows which
+        variables were applied by <em>name</em> &mdash; knowing that <code>PGPASSWORD</code> was set
+        is useful; writing its value into a run configuration would put it straight into git.</p>
+
+        <p>Requires <code>direnv</code> installed and on <code>PATH</code>. Implements
+        <a href="https://youtrack.jetbrains.com/issue/IJPL-11588">IJPL-11588</a>.
+        Known limitations are documented in the
+        <a href="https://github.com/salatmaster/direnv-jetbrains-plugin">README</a>.</p>
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <projectService serviceImplementation="io.github.salatmaster.direnv.settings.DirenvSettings"/>
+        <projectService serviceImplementation="io.github.salatmaster.direnv.DirenvService"/>
+
+        <!-- Invoked from GeneralCommandLine.setupEnvironment(), so this single registration
+             covers run/debug, the JPS build process, Gradle sync, Maven and External Tools. -->
+        <commandLineEnvCustomizer
+            implementation="io.github.salatmaster.direnv.inject.DirenvCommandLineEnvCustomizer"/>
+
+        <!-- The customizer above serves cache only, so the cache must be warmed on project open. -->
+        <postStartupActivity implementation="io.github.salatmaster.direnv.DirenvStartupActivity"/>
+
+        <!-- Reload when a file direnv reported in DIRENV_WATCHES changes: not just .envrc, but
+             flake.lock, .env and direnv's own allow/deny stamps. -->
+        <projectService serviceImplementation="io.github.salatmaster.direnv.watch.DirenvWatchService"/>
+        <vfs.asyncListener implementation="io.github.salatmaster.direnv.watch.DirenvVfsListener"/>
+
+        <statusBarWidgetFactory id="direnv.status"
+                                implementation="io.github.salatmaster.direnv.ui.DirenvStatusBarWidgetFactory"/>
+        <notificationGroup id="direnv" displayType="BALLOON"/>
+        <postStartupActivity implementation="io.github.salatmaster.direnv.ui.DirenvNotifier"/>
+
+        <editorNotificationProvider
+            implementation="io.github.salatmaster.direnv.ui.DirenvEditorBanner"/>
+
+        <projectConfigurable id="direnv.settings"
+                             groupId="tools"
+                             displayName="direnv"
+                             instance="io.github.salatmaster.direnv.ui.DirenvConfigurable"/>
+    </extensions>
+
+    <!-- Terminal needs its own hook: the shell is started through the EEL API or
+         PtyProcessBuilder, bypassing GeneralCommandLine entirely. -->
+    <depends optional="true" config-file="direnv-terminal.xml">org.jetbrains.plugins.terminal</depends>
+
+    <!-- Optional: only loads in IDEs that have Java support. -->
+    <depends optional="true" config-file="direnv-java.xml">com.intellij.java</depends>
+
+    <actions>
+        <group id="direnv.actions" text="direnv" popup="true">
+            <action id="direnv.reload"
+                    class="io.github.salatmaster.direnv.ui.DirenvReloadAction"
+                    text="Reload direnv Environment"/>
+            <action id="direnv.open"
+                    class="io.github.salatmaster.direnv.ui.DirenvOpenEnvrcAction"
+                    text="Open .envrc"/>
+            <!-- Allow deliberately follows Open, so reviewing the file is the path of least
+                 resistance rather than approving it blind. -->
+            <action id="direnv.allow"
+                    class="io.github.salatmaster.direnv.ui.DirenvAllowAction"
+                    text="Allow This .envrc"/>
+            <action id="direnv.show"
+                    class="io.github.salatmaster.direnv.ui.DirenvShowEnvironmentAction"
+                    text="Show direnv Environment"/>
+            <action id="direnv.block"
+                    class="io.github.salatmaster.direnv.ui.DirenvBlockAction"
+                    text="Block This .envrc"/>
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </group>
+    </actions>
+</idea-plugin>
