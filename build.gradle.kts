@@ -7,7 +7,13 @@ plugins {
 }
 
 group = providers.gradleProperty("pluginGroup").get()
-version = providers.gradleProperty("pluginVersion").get()
+
+// The release workflow passes the version it is cutting, so the number in the artifact,
+// the tag and the changelog cannot drift apart. Local builds fall back to gradle.properties.
+val pluginVersion = providers.environmentVariable("PLUGIN_VERSION")
+    .orElse(providers.gradleProperty("pluginVersion"))
+
+version = pluginVersion.get()
 
 kotlin { jvmToolchain(21) }
 
@@ -53,7 +59,7 @@ tasks.runIde {
 
 intellijPlatform {
     pluginConfiguration {
-        version = providers.gradleProperty("pluginVersion")
+        version = pluginVersion
         ideaVersion {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
             // No upper bound: the plugin must not stop loading when a new IDE ships.

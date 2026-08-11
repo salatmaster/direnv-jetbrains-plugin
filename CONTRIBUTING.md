@@ -76,6 +76,22 @@ unique canary string.
 Note that `BasePlatformTestCase` reuses one light project across tests in a class, so project-level
 services survive between tests. Reset them in `setUp` and `tearDown`, as the existing tests do.
 
+## Releasing
+
+Releases are cut from the Actions tab, not by pushing a tag: run the **Release** workflow
+and give it a version such as `0.2.0`.
+
+The workflow moves everything under `## [Unreleased]` in `CHANGELOG.md` into a section for
+that version, then tests, verifies against the target IDEs and builds — and only if all of
+that passes does it commit the changelog to `main`, tag it and publish the GitHub release.
+A failed build therefore leaves `main` untouched, and every tag points at a commit that
+contains its own changelog entry. A release with an empty `[Unreleased]` section is refused
+outright.
+
+Publishing to the JetBrains Marketplace is a separate, deliberate switch: it happens only
+when the repository variable `PUBLISH_TO_MARKETPLACE` is `true`, because a bad release there
+cannot be withdrawn as easily as a tag.
+
 ## Commits and pull requests
 
 Explain why a change is needed, not only what it does. If you worked around a platform behaviour,

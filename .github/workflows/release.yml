@@ -1,22 +1,56 @@
 name: Release
 
+# Releasing is a dispatch, not a tag push. The workflow writes the changelog entry for
+# the version, builds and verifies, and only then commits and tags — so the tag always
+# points at a commit containing its own changelog, and a failed build leaves main
+# untouched. Pushing a tag by hand does nothing.
 on:
-  push:
-    tags: ["v*"]
   workflow_dispatch:
     inputs:
-      dry_run:
-        description: "Build and verify without publishing"
-        type: boolean
-        default: true
+      version:
+        description: 'Version to release, without the leading v (for example 0.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+# Two releases must never interleave: both push main.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    timeout-minutes: 60
+
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      # First, because it is the only step that validates the version, and it refuses to
+      # release one whose [Unreleased] section says nothing.
+      - name: Cut the changelog
+        env:
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: .github/scripts/cut-changelog.sh "${{ inputs.version }}" "$(date -u +%Y-%m-%d)"
+
+      - name: Check the version is free
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then
+            echo "Tag v$VERSION already exists. Delete it, or pick another version." >&2
+            exit 1
+          fi
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "Release v$VERSION already exists." >&2
+            exit 1
+          fi
 
       - uses: actions/setup-java@v4
         with:
@@ -25,28 +59,72 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Build and test
-        run: ./gradlew build --stacktrace
-
-      # Publishing an incompatible plugin is worse than not publishing, so verification gates it.
-      - name: Verify plugin
-        run: ./gradlew verifyPlugin --stacktrace
-
-      - name: Build plugin ZIP
-        run: ./gradlew buildPlugin --stacktrace
-
-      - name: Attach the ZIP to the GitHub release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: build/distributions/*.zip
-          generate_release_notes: true
-
-      - name: Publish to JetBrains Marketplace
-        if: startsWith(github.ref, 'refs/tags/') && !inputs.dry_run
+      - name: Test
         env:
+          PLUGIN_VERSION: ${{ inputs.version }}
+        run: ./gradlew test --no-daemon
+
+      # Runs here rather than on every push because it downloads whole IDEs, and here is
+      # where it pays: nothing is committed, tagged or published after it. Publishing an
+      # incompatible plugin is far harder to walk back than failing a workflow run.
+      - name: Verify against the target IDEs
+        env:
+          PLUGIN_VERSION: ${{ inputs.version }}
+        run: ./gradlew verifyPlugin --no-daemon
+
+      - name: Upload the verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-verifier-report
+          path: build/reports/pluginVerifier
+
+      - name: Build the plugin
+        env:
+          PLUGIN_VERSION: ${{ inputs.version }}
+          CERTIFICATE_CHAIN: ${{ secrets.PLUGIN_CERTIFICATE_CHAIN }}
+          PRIVATE_KEY: ${{ secrets.PLUGIN_PRIVATE_KEY }}
+          PRIVATE_KEY_PASSWORD: ${{ secrets.PLUGIN_PRIVATE_KEY_PASSWORD }}
+        run: ./gradlew buildPlugin --no-daemon
+
+      # Nothing has been pushed until here, so a red build costs a workflow run and
+      # nothing else. The push of main fails rather than rebasing if someone landed a
+      # commit meanwhile: the artifact above was built from this tree, not that one.
+      - name: Commit the changelog and tag it
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add CHANGELOG.md
+          if git diff --cached --quiet; then
+            echo "CHANGELOG.md was already current for $VERSION."
+          else
+            git commit -m "Cut $VERSION in the changelog"
+            git push origin main
+          fi
+          git tag -a "v$VERSION" -m "$VERSION"
+          git push origin "v$VERSION"
+
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          gh release create "v$VERSION" \
+            --title "v$VERSION" \
+            --generate-notes \
+            build/distributions/*.zip
+
+      # A separate, deliberate step: a bad release on the Marketplace cannot be withdrawn
+      # as easily as a tag, so releasing alone never publishes there. Set the repository
+      # variable PUBLISH_TO_MARKETPLACE to true once the listing is ready.
+      - name: Publish to the JetBrains Marketplace
+        if: ${{ vars.PUBLISH_TO_MARKETPLACE == 'true' }}
+        env:
+          PLUGIN_VERSION: ${{ inputs.version }}
           PUBLISH_TOKEN: ${{ secrets.JETBRAINS_MARKETPLACE_TOKEN }}
           CERTIFICATE_CHAIN: ${{ secrets.PLUGIN_CERTIFICATE_CHAIN }}
           PRIVATE_KEY: ${{ secrets.PLUGIN_PRIVATE_KEY }}
           PRIVATE_KEY_PASSWORD: ${{ secrets.PLUGIN_PRIVATE_KEY_PASSWORD }}
-        run: ./gradlew publishPlugin --stacktrace
+        run: ./gradlew publishPlugin --no-daemon
