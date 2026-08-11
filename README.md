@@ -33,6 +33,7 @@ Both workarounds appear, almost word for word, in the comments on IJPL-11588.
 | Gradle sync, Gradle tasks, Maven | yes |
 | Terminal | yes |
 | External Tools, File Watchers | yes |
+| Git hooks — `pre-commit` and the rest, when you commit from the IDE | yes |
 | Processes started by other plugins | yes |
 | Indexing and static analysis | partly — via SDK suggestion, see [Limitations](#limitations) |
 
@@ -138,6 +139,14 @@ be supported properly.
 
 Stated plainly, because a plugin that hides these costs you an afternoon:
 
+- **The environment has to be loaded already.** Injection reads what is cached and never starts
+  direnv itself, so a process launched before the first load finishes — or in a project you have
+  not trusted, or whose `.envrc` is still blocked — starts without it, silently. Opening the
+  project triggers the load, so in practice the cache is warm long before you run anything.
+- **Git hooks run only if the IDE is told to run them.** The commit options carry a *Run Git hooks*
+  checkbox; with it off no hook runs at all, and no environment can reach one. That is the IDE's
+  setting rather than this plugin's, but it is the first thing to check when a hook does not see
+  what you expect.
 - **Indexing and static analysis do not follow `PATH`.** The IDE resolves toolchains through
   project SDKs, so a JDK provided by direnv is *offered* as an SDK rather than adopted silently.
   That is deliberate: a Nix store path can vanish after garbage collection, and rewriting your
