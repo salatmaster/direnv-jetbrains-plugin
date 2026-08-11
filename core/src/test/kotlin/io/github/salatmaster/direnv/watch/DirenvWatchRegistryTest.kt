@@ -12,6 +12,9 @@ class DirenvWatchRegistryTest {
 
     private fun watch(path: String) = DirenvWatch(Paths.get(path), 0L, true)
 
+    /** The registry normalises paths, so expectations must be normalised the same way. */
+    private fun abs(path: String) = Paths.get(path).toAbsolutePath().normalize()
+
     @Test
     fun `a change to a watched file requires reload`() {
         val registry = DirenvWatchRegistry()
@@ -25,7 +28,7 @@ class DirenvWatchRegistryTest {
         val registry = DirenvWatchRegistry()
         registry.replace(Paths.get("/p"), listOf(watch("/p/flake.lock")))
 
-        assertEquals(Paths.get("/p"), registry.reloadTargetFor(Paths.get("/p/flake.lock")))
+        assertEquals(abs("/p"), registry.reloadTargetFor(Paths.get("/p/flake.lock")))
     }
 
     @Test
@@ -44,7 +47,7 @@ class DirenvWatchRegistryTest {
         val stamp = "/home/u/.local/share/direnv/allow/8be319f2"
         registry.replace(Paths.get("/p"), listOf(watch(stamp)))
 
-        assertEquals(Paths.get("/p"), registry.reloadTargetFor(Paths.get(stamp)))
+        assertEquals(abs("/p"), registry.reloadTargetFor(Paths.get(stamp)))
     }
 
     @Test
@@ -55,7 +58,7 @@ class DirenvWatchRegistryTest {
         registry.replace(Paths.get("/p"), listOf(watch("/p/new.txt")))
 
         assertEquals(null, registry.reloadTargetFor(Paths.get("/p/old.txt")))
-        assertEquals(Paths.get("/p"), registry.reloadTargetFor(Paths.get("/p/new.txt")))
+        assertEquals(abs("/p"), registry.reloadTargetFor(Paths.get("/p/new.txt")))
     }
 
     @Test
@@ -64,8 +67,8 @@ class DirenvWatchRegistryTest {
         registry.replace(Paths.get("/p"), listOf(watch("/p/.envrc")))
         registry.replace(Paths.get("/p/nested"), listOf(watch("/p/nested/.envrc")))
 
-        assertEquals(Paths.get("/p"), registry.reloadTargetFor(Paths.get("/p/.envrc")))
-        assertEquals(Paths.get("/p/nested"), registry.reloadTargetFor(Paths.get("/p/nested/.envrc")))
+        assertEquals(abs("/p"), registry.reloadTargetFor(Paths.get("/p/.envrc")))
+        assertEquals(abs("/p/nested"), registry.reloadTargetFor(Paths.get("/p/nested/.envrc")))
     }
 
     @Test
@@ -74,7 +77,7 @@ class DirenvWatchRegistryTest {
         registry.replace(Paths.get("/p"), listOf(watch("/p/.envrc"), watch("/p/flake.lock")))
 
         assertEquals(
-            setOf(Paths.get("/p/.envrc"), Paths.get("/p/flake.lock")),
+            setOf(abs("/p/.envrc"), abs("/p/flake.lock")),
             registry.allWatchedPaths(),
         )
     }
@@ -95,7 +98,7 @@ class DirenvWatchRegistryTest {
         val registry = DirenvWatchRegistry()
         registry.replace(Paths.get("/p"), listOf(watch("/p/sub/../.envrc")))
 
-        assertEquals(Paths.get("/p"), registry.reloadTargetFor(Paths.get("/p/.envrc")))
+        assertEquals(abs("/p"), registry.reloadTargetFor(Paths.get("/p/.envrc")))
     }
 
     @Test
@@ -111,7 +114,7 @@ class DirenvWatchRegistryTest {
 
         Files.writeString(stamp, "approved")
 
-        assertEquals(setOf(Paths.get("/p")), registry.staleTargets())
+        assertEquals(setOf(abs("/p")), registry.staleTargets())
     }
 
     @Test
@@ -127,7 +130,7 @@ class DirenvWatchRegistryTest {
         Files.setLastModifiedTime(file, java.nio.file.attribute.FileTime.fromMillis(
             (recordedTime + 60) * 1000))
 
-        assertEquals(setOf(Paths.get("/p")), registry.staleTargets())
+        assertEquals(setOf(abs("/p")), registry.staleTargets())
     }
 
     @Test
@@ -137,7 +140,7 @@ class DirenvWatchRegistryTest {
         val registry = DirenvWatchRegistry()
         registry.replace(Paths.get("/p"), listOf(DirenvWatch(stamp, 0L, false)))
         Files.writeString(stamp, "approved")
-        assertEquals(setOf(Paths.get("/p")), registry.staleTargets())
+        assertEquals(setOf(abs("/p")), registry.staleTargets())
 
         registry.rebaseline()
 

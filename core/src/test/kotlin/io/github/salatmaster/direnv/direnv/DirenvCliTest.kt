@@ -154,16 +154,18 @@ class DirenvCliTest {
 
     @Test
     fun `allow invokes direnv allow with the envrc path`() {
-        cli.allow(Paths.get("/p/.envrc"))
+        val envrc = Paths.get("/p/.envrc")
+        cli.allow(envrc)
 
-        assertEquals(listOf("allow", "/p/.envrc"), runner.invocations.single().args)
+        assertEquals(listOf("allow", envrc.toString()), runner.invocations.single().args)
     }
 
     @Test
     fun `deny invokes direnv deny with the envrc path`() {
-        cli.deny(Paths.get("/p/.envrc"))
+        val envrc = Paths.get("/p/.envrc")
+        cli.deny(envrc)
 
-        assertEquals(listOf("deny", "/p/.envrc"), runner.invocations.single().args)
+        assertEquals(listOf("deny", envrc.toString()), runner.invocations.single().args)
     }
 
     @Test

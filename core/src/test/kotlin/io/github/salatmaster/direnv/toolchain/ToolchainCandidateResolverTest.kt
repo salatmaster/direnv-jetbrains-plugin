@@ -3,6 +3,7 @@ package io.github.salatmaster.direnv.toolchain
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -35,7 +36,7 @@ class ToolchainCandidateResolverTest {
         val home = toolchainHome("java")
 
         val resolved = ToolchainCandidateResolver.resolve(
-            entries = mapOf("PATH" to "/nonexistent:${home.resolve("bin")}"),
+            entries = mapOf("PATH" to "/nonexistent${File.pathSeparator}${home.resolve("bin")}"),
             homeVariable = "JAVA_HOME",
             executable = "java",
         )
@@ -85,7 +86,7 @@ class ToolchainCandidateResolverTest {
         val real = toolchainHome("go")
 
         val resolved = ToolchainCandidateResolver.resolve(
-            entries = mapOf("PATH" to "$first:${real.resolve("bin")}"),
+            entries = mapOf("PATH" to "$first${File.pathSeparator}${real.resolve("bin")}"),
             homeVariable = "GOROOT",
             executable = "go",
         )
