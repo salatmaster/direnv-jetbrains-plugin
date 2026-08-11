@@ -6,6 +6,8 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-08-11
+
 ### Fixed
 
 - The status bar menu works. Every entry in it was disabled and *Allow This .envrc* was missing
@@ -62,6 +64,7 @@ All notable changes to this plugin are documented here. The format follows
 - direnv is not executed at all in projects that have not been trusted.
 - Environment values are never written to logs, run configurations, or any file under `.idea/`.
 
-[unreleased]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.1.1...HEAD
+[unreleased]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/salatmaster/direnv-jetbrains-plugin/releases/tag/v0.1.0
