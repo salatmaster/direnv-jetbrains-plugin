@@ -1,6 +1,6 @@
 <idea-plugin url="https://github.com/salatmaster/direnv-jetbrains-plugin" require-restart="false">
     <id>io.github.salatmaster.direnv</id>
-    <name>direnv</name>
+    <name>direnv Everywhere</name>
     <vendor email="abstractcoderx@gmail.com" url="https://github.com/salatmaster">salatmaster</vendor>
 
     <description><![CDATA[

@@ -1,4 +1,6 @@
-# direnv for JetBrains IDEs
+# direnv Everywhere
+
+**direnv for JetBrains IDEs.**
 
 **Your `.envrc` environment, everywhere the IDE runs something.** Run configurations, the build
 process, Gradle, Maven, External Tools and the terminal — scoped to the project, reloaded

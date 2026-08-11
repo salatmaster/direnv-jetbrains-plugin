@@ -6,6 +6,13 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Renamed the plugin to **direnv Everywhere**. The Marketplace rejects an upload whose
+  name collides with an existing listing, and four direnv plugins are already published.
+  The new name also says what distinguishes this one: the environment reaches the build
+  process, Gradle, Maven and the terminal, not only run configurations.
+
 ## [0.1.0] - 2026-08-11
 
 ### Added
