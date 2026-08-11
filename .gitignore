@@ -1,0 +1,64 @@
+### Gradle ###
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### IntelliJ Platform Gradle Plugin ###
+# Sandbox IDE, downloaded platform artifacts, Kotlin incremental caches
+.intellijPlatform/
+.kotlin/
+out/
+
+### IntelliJ IDEA / JetBrains IDEs ###
+.idea/
+*.iml
+*.ipr
+*.iws
+
+### direnv ###
+# .direnv/ is direnv's local cache — never commit it.
+# NOTE: .envrc is intentionally NOT ignored: test fixtures for this plugin
+# need real .envrc files under version control.
+.direnv/
+
+### Eclipse ###
+.classpath
+.project
+.settings/
+bin/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### macOS ###
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+### Linux ###
+*~
+.directory
+
+### Windows ###
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+### Local / logs ###
+*.log
+local.properties
+
+### Working documents — notes and agent config, not part of the project ###
+docs/superpowers/
+.claude/
+.scratch/

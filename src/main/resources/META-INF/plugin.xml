@@ -1,0 +1,12 @@
+<idea-plugin url="https://github.com/salatmaster/direnv-jetbrains-plugin" require-restart="false">
+    <id>io.github.salatmaster.direnv</id>
+    <name>direnv</name>
+    <vendor email="abstractcoderx@gmail.com" url="https://github.com/salatmaster">salatmaster</vendor>
+
+    <description><![CDATA[
+        Loads the environment produced by <a href="https://direnv.net">direnv</a> and makes it
+        available to processes started by the IDE, scoped to the project and working directory.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+</idea-plugin>
