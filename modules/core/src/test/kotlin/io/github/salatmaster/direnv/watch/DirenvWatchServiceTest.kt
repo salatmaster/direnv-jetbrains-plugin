@@ -1,0 +1,130 @@
+package io.github.salatmaster.direnv.watch
+
+import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import io.github.salatmaster.direnv.DirenvService
+import io.github.salatmaster.direnv.direnv.DirenvCli
+import io.github.salatmaster.direnv.direnv.DirenvProcessResult
+import io.github.salatmaster.direnv.direnv.DirenvWatch
+import io.github.salatmaster.direnv.direnv.DirenvWatchesCodec
+import io.github.salatmaster.direnv.direnv.FakeDirenvProcessRunner
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import java.nio.file.Path
+import java.nio.file.Paths
+
+class DirenvWatchServiceTest : BasePlatformTestCase() {
+
+    private lateinit var runner: FakeDirenvProcessRunner
+    private lateinit var service: DirenvService
+    private lateinit var watchService: DirenvWatchService
+
+    private val workDir: Path get() = Paths.get(project.basePath!!)
+
+    override fun setUp() {
+        super.setUp()
+        runner = FakeDirenvProcessRunner()
+        service = DirenvService.getInstance(project)
+        watchService = DirenvWatchService.getInstance(project)
+        service.invalidate(null)
+        service.cliOverride = DirenvCli(
+            runner = runner,
+            executableProvider = { "direnv" },
+            extraEnvProvider = { emptyMap() },
+            timeoutMsProvider = { 5_000 },
+        )
+    }
+
+    override fun tearDown() {
+        try {
+            service.invalidate(null)
+            service.cliOverride = null
+        } finally {
+            super.tearDown()
+        }
+    }
+
+    private fun exportWith(vararg watched: String): String {
+        val encoded = DirenvWatchesCodec.encode(
+            watched.map { DirenvWatch(Paths.get(it), 0L, true) }
+        )
+        return """{"FOO":"bar","DIRENV_WATCHES":"$encoded"}"""
+    }
+
+    fun `test loading an environment registers the files it depends on`() = runBlocking {
+        val flake = workDir.resolve("flake.lock").toString()
+        runner.respondTo("export", DirenvProcessResult(0, exportWith(flake), ""))
+
+        service.load(workDir, force = true)
+
+        assertTrue(watchService.watchedPaths().contains(Paths.get(flake)))
+    }
+
+    fun `test files outside the project are registered too`() = runBlocking {
+        // direnv's allow stamps live under the user's data directory. Missing them is what makes
+        // an external `direnv allow` go unnoticed by the IDE.
+        val stamp = "/tmp/direnv-allow-stamp-test"
+        runner.respondTo("export", DirenvProcessResult(0, exportWith(stamp), ""))
+
+        service.load(workDir, force = true)
+
+        assertTrue(watchService.watchedPaths().contains(Paths.get(stamp)))
+    }
+
+    fun `test reloading replaces the previous watch set`() = runBlocking {
+        val first = workDir.resolve("first.lock").toString()
+        runner.respondTo("export", DirenvProcessResult(0, exportWith(first), ""))
+        service.load(workDir, force = true)
+
+        val second = workDir.resolve("second.lock").toString()
+        runner.respondTo("export", DirenvProcessResult(0, exportWith(second), ""))
+        service.load(workDir, force = true)
+
+        assertFalse(watchService.watchedPaths().contains(Paths.get(first)))
+        assertTrue(watchService.watchedPaths().contains(Paths.get(second)))
+    }
+
+    fun `test a change to an unwatched file does not trigger direnv`() = runBlocking {
+        runner.respondTo("export", DirenvProcessResult(0, exportWith(workDir.resolve("a.lock").toString()), ""))
+        service.load(workDir, force = true)
+        val before = runner.invocations.size
+
+        watchService.handleChangedPaths(listOf(workDir.resolve("unrelated.txt")))
+        delay(DEBOUNCE_PLUS_MARGIN_MS)
+
+        assertEquals(before, runner.invocations.size)
+    }
+
+    fun `test a change to a watched file triggers a reload`() = runBlocking {
+        val lock = workDir.resolve("watched.lock")
+        runner.respondTo("export", DirenvProcessResult(0, exportWith(lock.toString()), ""))
+        service.load(workDir, force = true)
+        val before = runner.invocations.size
+
+        watchService.handleChangedPaths(listOf(lock))
+        delay(DEBOUNCE_PLUS_MARGIN_MS)
+
+        assertTrue(
+            "expected a reload after a watched file changed",
+            runner.invocations.size > before,
+        )
+    }
+
+    fun `test watching can be disabled in settings`() = runBlocking {
+        val lock = workDir.resolve("watched.lock")
+        runner.respondTo("export", DirenvProcessResult(0, exportWith(lock.toString()), ""))
+        service.load(workDir, force = true)
+        io.github.salatmaster.direnv.settings.DirenvSettings.getInstance(project).state.watchFiles = false
+        val before = runner.invocations.size
+
+        watchService.handleChangedPaths(listOf(lock))
+        delay(DEBOUNCE_PLUS_MARGIN_MS)
+
+        assertEquals(before, runner.invocations.size)
+        io.github.salatmaster.direnv.settings.DirenvSettings.getInstance(project).state.watchFiles = true
+    }
+
+    private companion object {
+        /** The service debounces by 500 ms; wait past that plus scheduling slack. */
+        const val DEBOUNCE_PLUS_MARGIN_MS = 1_500L
+    }
+}

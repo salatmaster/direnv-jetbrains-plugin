@@ -9,6 +9,7 @@ import io.github.salatmaster.direnv.direnv.DirenvEnvironment
 import io.github.salatmaster.direnv.direnv.DirenvOutcome
 import io.github.salatmaster.direnv.direnv.GeneralCommandLineRunner
 import io.github.salatmaster.direnv.settings.DirenvSettings
+import io.github.salatmaster.direnv.watch.DirenvWatchService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -103,6 +104,9 @@ class DirenvService(private val project: Project) {
             val key = environment.loadedRcPath?.parent?.toAbsolutePath()?.normalize() ?: workingDir
             cache[key] = environment
             keyByQueriedDir[workingDir] = key
+            // Register the files this environment depends on, so a change to flake.lock or an
+            // external `direnv allow` triggers a reload.
+            DirenvWatchService.getInstance(project).updateWatches(key, environment.watches)
             val diff = environment.diffAgainst(System.getenv())
             log.info(
                 "direnv loaded for $key: " +

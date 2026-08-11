@@ -21,6 +21,11 @@
 
         <!-- The customizer above serves cache only, so the cache must be warmed on project open. -->
         <postStartupActivity implementation="io.github.salatmaster.direnv.DirenvStartupActivity"/>
+
+        <!-- Reload when a file direnv reported in DIRENV_WATCHES changes: not just .envrc, but
+             flake.lock, .env and direnv's own allow/deny stamps. -->
+        <projectService serviceImplementation="io.github.salatmaster.direnv.watch.DirenvWatchService"/>
+        <vfs.asyncListener implementation="io.github.salatmaster.direnv.watch.DirenvVfsListener"/>
     </extensions>
 
     <!-- Terminal needs its own hook: the shell is started through the EEL API or
