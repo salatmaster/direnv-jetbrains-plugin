@@ -6,6 +6,8 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-08-11
+
 ### Added
 
 - Loads the direnv environment when a project opens, scoped to the project and working directory.
@@ -31,3 +33,6 @@ All notable changes to this plugin are documented here. The format follows
 - `direnv allow` is never invoked automatically, under any setting.
 - direnv is not executed at all in projects that have not been trusted.
 - Environment values are never written to logs, run configurations, or any file under `.idea/`.
+
+[unreleased]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/salatmaster/direnv-jetbrains-plugin/releases/tag/v0.1.0
