@@ -10,16 +10,21 @@ for direnv's behaviour.
 
 ## Status
 
-Early development. Working today:
+Under active development. Working today:
 
 - the environment loads when a project opens;
 - it is injected into processes the IDE starts, including run/debug, the JPS build process,
   Gradle sync and Maven, and External Tools;
 - it is applied to terminal sessions;
+- it reloads automatically when any file direnv depends on changes — not only `.envrc`, but also
+  `flake.nix`, `flake.lock`, `.env`, and direnv's own allow/deny stamps, so a `direnv allow` typed
+  in an external terminal is picked up;
+- the status bar shows whether an environment is active, blocked or failing, with actions to
+  reload, open, allow or block, and a viewer listing the applied variable names;
 - `.envrc` files are never approved automatically, and untrusted projects never run direnv.
 
-Not implemented yet: automatic reload when watched files change, status bar and notifications,
-allow/block actions, the settings UI, and SDK detection. Those are milestones 2 and 3.
+Not implemented yet: SDK and toolchain detection, Gradle daemon invalidation, and release
+automation. That is milestone 3.
 
 ## How it works
 

@@ -10,7 +10,9 @@ import io.github.salatmaster.direnv.direnv.DirenvOutcome
 import io.github.salatmaster.direnv.direnv.GeneralCommandLineRunner
 import io.github.salatmaster.direnv.settings.DirenvSettings
 import io.github.salatmaster.direnv.watch.DirenvWatchService
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -28,7 +30,7 @@ import java.util.concurrent.atomic.AtomicReference
  * Nothing here reaches disk: the values are frequently secrets.
  */
 @Service(Service.Level.PROJECT)
-class DirenvService(private val project: Project) {
+class DirenvService(private val project: Project, private val scope: CoroutineScope) {
 
     private val log = Logger.getInstance(DirenvService::class.java)
 
@@ -90,10 +92,10 @@ class DirenvService(private val project: Project) {
         return loadMutex.withLock {
             if (!force && cachedFor(normalised) != null) return@withLock currentState.get()
 
-            currentState.set(DirenvState.Loading)
+            publish(DirenvState.Loading)
             val outcome = withContext(Dispatchers.IO) { cli().export(normalised) }
             val newState = applyOutcome(normalised, outcome)
-            currentState.set(newState)
+            publish(newState)
             newState
         }
     }
@@ -130,12 +132,48 @@ class DirenvService(private val project: Project) {
         }
     }
 
+    /** Reloads the environment for [workingDir] from a non-suspending caller, e.g. an action. */
+    fun scheduleReload(workingDir: Path) {
+        scope.launch { load(workingDir, force = true) }
+    }
+
+    /**
+     * Approves an .envrc and reloads.
+     *
+     * Only ever reached from an explicit user action: nothing in the plugin calls this on its own.
+     */
+    fun scheduleAllow(envrcPath: Path, workingDir: Path) {
+        scope.launch {
+            withContext(Dispatchers.IO) { cli().allow(envrcPath) }
+            load(workingDir, force = true)
+        }
+    }
+
+    /** Revokes approval of an .envrc and drops the environment it produced. */
+    fun scheduleBlock(envrcPath: Path, workingDir: Path) {
+        scope.launch {
+            withContext(Dispatchers.IO) { cli().deny(envrcPath) }
+            invalidate(workingDir)
+            load(workingDir, force = true)
+        }
+    }
+
+    /** The .envrc backing the environment for [workingDir], if one is known. */
+    fun envrcPathFor(workingDir: Path): Path? = cachedFor(workingDir)?.loadedRcPath
+        ?: (currentState.get() as? DirenvState.Blocked)?.let { Path.of(it.envrcPath) }
+
+    private fun publish(state: DirenvState) {
+        currentState.set(state)
+        if (project.isDisposed) return
+        project.messageBus.syncPublisher(DirenvStateListener.TOPIC).stateChanged(state)
+    }
+
     /** Drops cached environments. Passing null clears everything. */
     fun invalidate(workingDir: Path?) {
         if (workingDir == null) {
             cache.clear()
             keyByQueriedDir.clear()
-            currentState.set(DirenvState.NotLoaded)
+            publish(DirenvState.NotLoaded)
             return
         }
         val normalised = workingDir.toAbsolutePath().normalize()

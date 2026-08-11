@@ -26,9 +26,45 @@
              flake.lock, .env and direnv's own allow/deny stamps. -->
         <projectService serviceImplementation="io.github.salatmaster.direnv.watch.DirenvWatchService"/>
         <vfs.asyncListener implementation="io.github.salatmaster.direnv.watch.DirenvVfsListener"/>
+
+        <statusBarWidgetFactory id="direnv.status"
+                                implementation="io.github.salatmaster.direnv.ui.DirenvStatusBarWidgetFactory"/>
+        <notificationGroup id="direnv" displayType="BALLOON"/>
+        <postStartupActivity implementation="io.github.salatmaster.direnv.ui.DirenvNotifier"/>
+
+        <editorNotificationProvider
+            implementation="io.github.salatmaster.direnv.ui.DirenvEditorBanner"/>
+
+        <projectConfigurable id="direnv.settings"
+                             groupId="tools"
+                             displayName="direnv"
+                             instance="io.github.salatmaster.direnv.ui.DirenvConfigurable"/>
     </extensions>
 
     <!-- Terminal needs its own hook: the shell is started through the EEL API or
          PtyProcessBuilder, bypassing GeneralCommandLine entirely. -->
     <depends optional="true" config-file="direnv-terminal.xml">org.jetbrains.plugins.terminal</depends>
+
+    <actions>
+        <group id="direnv.actions" text="direnv" popup="true">
+            <action id="direnv.reload"
+                    class="io.github.salatmaster.direnv.ui.DirenvReloadAction"
+                    text="Reload direnv Environment"/>
+            <action id="direnv.open"
+                    class="io.github.salatmaster.direnv.ui.DirenvOpenEnvrcAction"
+                    text="Open .envrc"/>
+            <!-- Allow deliberately follows Open, so reviewing the file is the path of least
+                 resistance rather than approving it blind. -->
+            <action id="direnv.allow"
+                    class="io.github.salatmaster.direnv.ui.DirenvAllowAction"
+                    text="Allow This .envrc"/>
+            <action id="direnv.show"
+                    class="io.github.salatmaster.direnv.ui.DirenvShowEnvironmentAction"
+                    text="Show direnv Environment"/>
+            <action id="direnv.block"
+                    class="io.github.salatmaster.direnv.ui.DirenvBlockAction"
+                    text="Block This .envrc"/>
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </group>
+    </actions>
 </idea-plugin>
