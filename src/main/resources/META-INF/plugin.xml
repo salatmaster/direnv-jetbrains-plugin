@@ -9,4 +9,9 @@
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <projectService serviceImplementation="io.github.salatmaster.direnv.settings.DirenvSettings"/>
+        <projectService serviceImplementation="io.github.salatmaster.direnv.DirenvService"/>
+    </extensions>
 </idea-plugin>
