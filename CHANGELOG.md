@@ -6,6 +6,8 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-08-11
+
 ### Changed
 
 - Released archives are signed. Installing an unsigned plugin makes the IDE warn that the author
@@ -70,7 +72,8 @@ All notable changes to this plugin are documented here. The format follows
 - direnv is not executed at all in projects that have not been trusted.
 - Environment values are never written to logs, run configurations, or any file under `.idea/`.
 
-[unreleased]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.1.2...HEAD
+[unreleased]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/salatmaster/direnv-jetbrains-plugin/releases/tag/v0.1.0
