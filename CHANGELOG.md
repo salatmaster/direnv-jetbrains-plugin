@@ -14,6 +14,25 @@ All notable changes to this plugin are documented here. The format follows
   prompt comes from the Shell Script plugin, not from this one, and declining it changes nothing.
 - An IDE without this plugin now offers it when an `.envrc` is opened. The Marketplace builds that
   suggestion from the file names a plugin declares, and this one declared none.
+- Contributors can get the build toolchain from Nix, with `nix develop` or by allowing the `.envrc`
+  in the repository root. Entering the shell also installs the repository's git hooks, which check
+  the Nix files only for now.
+
+### Fixed
+
+- `gradle.properties` records the version that was released. Nothing kept `pluginVersion` current,
+  so it sat at 0.1.0 across four releases and a local `./gradlew buildPlugin` produced an artifact
+  numbered 0.1.0 — carrying 0.1.0's change notes, once those began coming from the changelog. The
+  release workflow now writes it in the same commit that cuts the changelog.
+- Two properties nothing read are gone. `pluginName` still said `direnv` long after the plugin was
+  renamed to direnv Everywhere, which is what a value no code consults does; the name comes from
+  `plugin.xml`. `pluginRepositoryUrl` was unreferenced too.
+
+### Security
+
+- Every GitHub Actions step that builds and publishes a release is pinned to a commit SHA instead
+  of a tag, so an action that is retagged or compromised upstream cannot change what goes into a
+  published build.
 
 ## [0.1.4] - 2026-08-11
 
