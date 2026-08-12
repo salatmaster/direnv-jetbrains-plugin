@@ -6,6 +6,12 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The plugin has a logo, in a light and a dark variant. Until now the Plugins dialog and the
+  Marketplace listing showed the platform's placeholder, which is what a plugin looks like when it
+  never supplied one.
+
 ## [0.1.5] - 2026-08-12
 
 ### Added

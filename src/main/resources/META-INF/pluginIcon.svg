@@ -1,0 +1,23 @@
+<svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="piL_blue" x1="36" y1="4" x2="5" y2="36" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#3DB9F7"/>
+            <stop offset="1" stop-color="#1A6EE8"/>
+        </linearGradient>
+        <linearGradient id="piL_green" x1="2" y1="20" x2="32" y2="20" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#A7E63C"/>
+            <stop offset="1" stop-color="#17B457"/>
+        </linearGradient>
+    </defs>
+    <path d="M8 4h12a16 16 0 0 1 0 32H8Q5 36 5 33V7Q5 4 8 4Z" fill="url(#piL_blue)"/>
+    <path d="M11 8h9a12 12 0 0 1 0 24h-9q-2 0-2-2V10q0-2 2-2Z" fill="#1461DD"/>
+    <path d="M12 10h8a10 10 0 0 1 0 20h-8q-1 0-1-1V11q0-1 1-1Z" fill="#F4F7FC"/>
+    <path d="M18 20C22 20 23 14 28.8 14M18 20h10.8M18 20c4 0 5 6 10.8 6" fill="none" stroke="url(#piL_green)"
+          stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M5 20h12" fill="none" stroke="url(#piL_green)" stroke-width="5" stroke-linecap="round"/>
+    <path d="M14 13l9 7-9 7Z" fill="url(#piL_green)" stroke="url(#piL_green)" stroke-width="1.5"
+          stroke-linejoin="round"/>
+    <circle cx="29.5" cy="14" r="2.2" fill="url(#piL_green)"/>
+    <circle cx="29.5" cy="20" r="2.2" fill="url(#piL_green)"/>
+    <circle cx="29.5" cy="26" r="2.2" fill="url(#piL_green)"/>
+</svg>
