@@ -38,6 +38,12 @@ jobs:
           REPO_URL: ${{ github.server_url }}/${{ github.repository }}
         run: .github/scripts/cut-changelog.sh "${{ inputs.version }}" "$(date -u +%Y-%m-%d)"
 
+      # Committed together with the changelog below, because they record the same fact. Left to
+      # drift, this property fell four releases behind and local builds produced an artifact
+      # numbered 0.1.0 carrying 0.1.0's change notes.
+      - name: Record the version in gradle.properties
+        run: .github/scripts/set-plugin-version.sh "${{ inputs.version }}"
+
       - name: Check the version is free
         env:
           GH_TOKEN: ${{ github.token }}
@@ -100,11 +106,11 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add CHANGELOG.md
+          git add CHANGELOG.md gradle.properties
           if git diff --cached --quiet; then
-            echo "CHANGELOG.md was already current for $VERSION."
+            echo "The changelog and gradle.properties were already current for $VERSION."
           else
-            git commit -m "Cut $VERSION in the changelog"
+            git commit -m "Cut $VERSION in the changelog and gradle.properties"
             git push origin main
           fi
           git tag -a "v$VERSION" -m "$VERSION"
