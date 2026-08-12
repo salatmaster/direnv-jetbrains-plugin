@@ -47,6 +47,23 @@
     <depends>com.intellij.modules.platform</depends>
 
     <extensions defaultExtensionNs="com.intellij">
+        <!-- Two jobs, one line.
+
+             It gives .envrc the shell highlighting it should have had all along: nothing in the
+             IDE claims that name, so the file opens as plain text.
+
+             It also makes the IDE offer this plugin to someone who opens an .envrc without it
+             installed. The Marketplace builds that index by reading fileNames, extensions and
+             patterns off this element — implementationClass is not read at all, so no file type
+             of our own is needed, and .envrc keeps the shell support it gets here rather than
+             being taken over by a type that highlights nothing.
+
+             Declared in the main descriptor rather than in an optional module, because the index
+             is built from this file. The platform registers every file type before it applies
+             declarations like this one, so plugin load order does not matter; the Shell Script
+             type only has to exist, and it is bundled with every IDE this plugin supports. -->
+        <fileType name="Shell Script" fileNames=".envrc"/>
+
         <projectService serviceImplementation="io.github.salatmaster.direnv.settings.DirenvSettings"/>
         <projectService serviceImplementation="io.github.salatmaster.direnv.DirenvService"/>
 
