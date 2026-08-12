@@ -62,3 +62,6 @@ local.properties
 docs/superpowers/
 .claude/
 .scratch/
+
+### Nix-generated
+.pre-commit-config.yaml
