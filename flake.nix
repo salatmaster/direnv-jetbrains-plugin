@@ -32,6 +32,7 @@
             shellHook = config.pre-commit.installationScript;
             packages = with pkgs; [
               jdk25
+              pinact
             ];
           };
           pre-commit.settings = {
