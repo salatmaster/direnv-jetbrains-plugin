@@ -6,6 +6,13 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `.envrc` is recognised as a shell script, so it gets syntax highlighting instead of opening as
+  plain text. Nothing in the IDE claimed the name before.
+- An IDE without this plugin now offers it when an `.envrc` is opened. The Marketplace builds that
+  suggestion from the file names a plugin declares, and this one declared none.
+
 ## [0.1.4] - 2026-08-11
 
 ### Fixed
