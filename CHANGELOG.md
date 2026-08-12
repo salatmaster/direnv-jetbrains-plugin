@@ -9,7 +9,9 @@ All notable changes to this plugin are documented here. The format follows
 ### Added
 
 - `.envrc` is recognised as a shell script, so it gets syntax highlighting instead of opening as
-  plain text. Nothing in the IDE claimed the name before.
+  plain text. Nothing in the IDE claimed the name before. It also gets the rest of the IDE's shell
+  support, which includes the offer to install shellcheck the first time one is opened — that
+  prompt comes from the Shell Script plugin, not from this one, and declining it changes nothing.
 - An IDE without this plugin now offers it when an `.envrc` is opened. The Marketplace builds that
   suggestion from the file names a plugin declares, and this one declared none.
 
