@@ -1,45 +1,28 @@
 package io.github.salatmaster.direnv
 
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.salatmaster.direnv.direnv.DirenvCli
 import io.github.salatmaster.direnv.direnv.DirenvProcessResult
 import io.github.salatmaster.direnv.direnv.DirenvWatch
 import io.github.salatmaster.direnv.direnv.DirenvWatchesCodec
 import io.github.salatmaster.direnv.direnv.FakeDirenvProcessRunner
 import kotlinx.coroutines.runBlocking
-import java.nio.file.Path
-import java.nio.file.Paths
+import java.nio.file.Files
 
-class DirenvServiceTest : BasePlatformTestCase() {
+class DirenvServiceTest : DirenvLightTestCase() {
 
     private lateinit var runner: FakeDirenvProcessRunner
     private lateinit var service: DirenvService
-
-    private val workDir: Path get() = Paths.get(project.basePath!!)
 
     override fun setUp() {
         super.setUp()
         runner = FakeDirenvProcessRunner()
         service = DirenvService.getInstance(project)
-        // BasePlatformTestCase reuses a single light project across tests, so this project-level
-        // service outlives each test. Without clearing it, a previous test's cached environment
-        // leaks in and later loads short-circuit on the stale cache.
-        service.invalidate(null)
         service.cliOverride = DirenvCli(
             runner = runner,
             executableProvider = { "direnv" },
             extraEnvProvider = { emptyMap() },
             timeoutMsProvider = { 5_000 },
         )
-    }
-
-    override fun tearDown() {
-        try {
-            service.invalidate(null)
-            service.cliOverride = null
-        } finally {
-            super.tearDown()
-        }
     }
 
     fun `test loads and caches an environment`() = runBlocking {
@@ -106,8 +89,16 @@ class DirenvServiceTest : BasePlatformTestCase() {
 
     fun `test a revoked approval is not cached and still names the file to allow`() = runBlocking {
         val envrc = workDir.resolve(".envrc")
-        val stamp = Paths.get("/home/u/.local/share/direnv/deny/abc")
-        val watches = DirenvWatchesCodec.encode(listOf(DirenvWatch(stamp, 0L, true)))
+        // A real file, recorded with its real modification time. direnv reports the stamp as
+        // existing, and a path that exists only in the fixture would not: the watch service polls
+        // it, correctly calls that a change, and forces a reload seconds later. The directory
+        // names matter — the stamp is recognised by living under direnv/deny.
+        val stamp = Files.writeString(
+            Files.createDirectories(workDir.resolve("direnv").resolve("deny")).resolve("abc"),
+            "",
+        )
+        val modtime = Files.getLastModifiedTime(stamp).toInstant().epochSecond
+        val watches = DirenvWatchesCodec.encode(listOf(DirenvWatch(stamp, modtime, true)))
         // Backslashes in a Windows path would otherwise be read as JSON escapes.
         val envrcJson = envrc.toString().replace("\\", "\\\\")
         runner.respondTo(

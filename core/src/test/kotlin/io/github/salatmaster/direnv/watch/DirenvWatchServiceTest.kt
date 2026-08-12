@@ -1,47 +1,35 @@
 package io.github.salatmaster.direnv.watch
 
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import io.github.salatmaster.direnv.DirenvLightTestCase
 import io.github.salatmaster.direnv.DirenvService
 import io.github.salatmaster.direnv.direnv.DirenvCli
 import io.github.salatmaster.direnv.direnv.DirenvProcessResult
 import io.github.salatmaster.direnv.direnv.DirenvWatch
 import io.github.salatmaster.direnv.direnv.DirenvWatchesCodec
 import io.github.salatmaster.direnv.direnv.FakeDirenvProcessRunner
+import io.github.salatmaster.direnv.settings.DirenvSettings
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import java.nio.file.Files
-import java.nio.file.Path
 import java.nio.file.Paths
 
-class DirenvWatchServiceTest : BasePlatformTestCase() {
+class DirenvWatchServiceTest : DirenvLightTestCase() {
 
     private lateinit var runner: FakeDirenvProcessRunner
     private lateinit var service: DirenvService
     private lateinit var watchService: DirenvWatchService
-
-    private val workDir: Path get() = Paths.get(project.basePath!!)
 
     override fun setUp() {
         super.setUp()
         runner = FakeDirenvProcessRunner()
         service = DirenvService.getInstance(project)
         watchService = DirenvWatchService.getInstance(project)
-        service.invalidate(null)
         service.cliOverride = DirenvCli(
             runner = runner,
             executableProvider = { "direnv" },
             extraEnvProvider = { emptyMap() },
             timeoutMsProvider = { 5_000 },
         )
-    }
-
-    override fun tearDown() {
-        try {
-            service.invalidate(null)
-            service.cliOverride = null
-        } finally {
-            super.tearDown()
-        }
     }
 
     /**
@@ -146,18 +134,36 @@ class DirenvWatchServiceTest : BasePlatformTestCase() {
         val lock = workDir.resolve("watched.lock")
         runner.respondTo("export", DirenvProcessResult(0, exportWith(lock.toString()), ""))
         service.load(workDir, force = true)
-        io.github.salatmaster.direnv.settings.DirenvSettings.getInstance(project).state.watchFiles = false
+        // Not restored here on purpose: a failing assertion would skip the restore and leak the
+        // setting into the next test. DirenvLightTestCase puts the settings back either way.
+        DirenvSettings.getInstance(project).state.watchFiles = false
         val before = runner.invocations.size
 
         watchService.handleChangedPaths(listOf(lock))
         delay(DEBOUNCE_PLUS_MARGIN_MS)
 
         assertEquals(before, runner.invocations.size)
-        io.github.salatmaster.direnv.settings.DirenvSettings.getInstance(project).state.watchFiles = true
+    }
+
+    fun `test a registered watch set stays quiet while its files are unchanged`() = runBlocking {
+        // The poll is what makes a terminal `direnv allow` reach the IDE, and it runs for as long
+        // as the project lives — across every later test, since the light project is shared. A
+        // watch set that reports a change when nothing changed therefore forces a reload into an
+        // unrelated test, which is how this suite produced failures that could not be reproduced.
+        runner.respondTo("export", DirenvProcessResult(0, exportWith(workDir.resolve("quiet.lock").toString()), ""))
+        service.load(workDir, force = true)
+        val before = runner.invocations.size
+
+        delay(POLL_PLUS_MARGIN_MS)
+
+        assertEquals("the poll reloaded although nothing changed", before, runner.invocations.size)
     }
 
     private companion object {
         /** The service debounces by 500 ms; wait past that plus scheduling slack. */
         const val DEBOUNCE_PLUS_MARGIN_MS = 1_500L
+
+        /** The service polls every 2 s; wait past one full tick plus scheduling slack. */
+        const val POLL_PLUS_MARGIN_MS = 3_000L
     }
 }

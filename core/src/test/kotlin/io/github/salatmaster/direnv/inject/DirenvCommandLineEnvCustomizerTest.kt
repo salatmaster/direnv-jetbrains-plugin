@@ -1,7 +1,7 @@
 package io.github.salatmaster.direnv.inject
 
 import com.intellij.execution.configurations.GeneralCommandLine
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import io.github.salatmaster.direnv.DirenvLightTestCase
 import io.github.salatmaster.direnv.DirenvService
 import io.github.salatmaster.direnv.direnv.DirenvCli
 import io.github.salatmaster.direnv.direnv.DirenvInternalMarker
@@ -10,7 +10,7 @@ import io.github.salatmaster.direnv.direnv.FakeDirenvProcessRunner
 import kotlinx.coroutines.runBlocking
 import java.nio.file.Paths
 
-class DirenvCommandLineEnvCustomizerTest : BasePlatformTestCase() {
+class DirenvCommandLineEnvCustomizerTest : DirenvLightTestCase() {
 
     private lateinit var runner: FakeDirenvProcessRunner
     private lateinit var service: DirenvService
@@ -21,23 +21,12 @@ class DirenvCommandLineEnvCustomizerTest : BasePlatformTestCase() {
         runner = FakeDirenvProcessRunner()
         customizer = DirenvCommandLineEnvCustomizer()
         service = DirenvService.getInstance(project)
-        // The light project is shared across tests, so the service must be reset explicitly.
-        service.invalidate(null)
         service.cliOverride = DirenvCli(
             runner = runner,
             executableProvider = { "direnv" },
             extraEnvProvider = { emptyMap() },
             timeoutMsProvider = { 5_000 },
         )
-    }
-
-    override fun tearDown() {
-        try {
-            service.invalidate(null)
-            service.cliOverride = null
-        } finally {
-            super.tearDown()
-        }
     }
 
     private fun commandLineInProject(): GeneralCommandLine =

@@ -1,13 +1,11 @@
 package io.github.salatmaster.direnv
 
 import com.intellij.openapi.util.SystemInfo
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.salatmaster.direnv.direnv.DirenvCli
 import io.github.salatmaster.direnv.direnv.GeneralCommandLineRunner
 import kotlinx.coroutines.runBlocking
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 
 /**
  * Drives the real process runner against an executable that speaks direnv's protocol.
@@ -16,26 +14,13 @@ import java.nio.file.Paths
  * fake-runner tests deliberately stub out. Skipped on Windows, where the shell-script form does
  * not apply; the fake-runner tests already cover the logic cross-platform.
  */
-class DirenvEndToEndTest : BasePlatformTestCase() {
+class DirenvEndToEndTest : DirenvLightTestCase() {
 
     private lateinit var service: DirenvService
 
     override fun setUp() {
         super.setUp()
         service = DirenvService.getInstance(project)
-        service.invalidate(null)
-        // The light project reuses one basePath across tests, but each tearDown deletes the
-        // directory behind it. Recreate it, or the process cannot be started at all.
-        Files.createDirectories(Paths.get(project.basePath!!))
-    }
-
-    override fun tearDown() {
-        try {
-            service.invalidate(null)
-            service.cliOverride = null
-        } finally {
-            super.tearDown()
-        }
     }
 
     private fun writeFakeDirenv(exportJson: String): Path {
@@ -68,7 +53,7 @@ class DirenvEndToEndTest : BasePlatformTestCase() {
         if (SystemInfo.isWindows) return
 
         useFakeDirenv("""{"E2E_VARIABLE":"e2e-value"}""")
-        val base = Paths.get(project.basePath!!)
+        val base = workDir
 
         runBlocking { service.load(base, force = true) }
 
@@ -79,7 +64,7 @@ class DirenvEndToEndTest : BasePlatformTestCase() {
         if (SystemInfo.isWindows) return
 
         useFakeDirenv("""{"E2E_VARIABLE":"e2e-value"}""")
-        val base = Paths.get(project.basePath!!)
+        val base = workDir
 
         // Completing at all proves there is no infinite recursion: the registered customizer runs
         // inside this call, on the very command line that launches direnv.
@@ -92,7 +77,7 @@ class DirenvEndToEndTest : BasePlatformTestCase() {
         if (SystemInfo.isWindows) return
 
         useFakeDirenv("{}")
-        val base = Paths.get(project.basePath!!)
+        val base = workDir
 
         val state = runBlocking { service.load(base, force = true) }
 
