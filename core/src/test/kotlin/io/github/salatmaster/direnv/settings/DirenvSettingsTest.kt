@@ -1,10 +1,10 @@
 package io.github.salatmaster.direnv.settings
 
 import com.intellij.openapi.util.JDOMUtil
-import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.util.xmlb.XmlSerializer
+import io.github.salatmaster.direnv.DirenvLightTestCase
 
-class DirenvSettingsTest : BasePlatformTestCase() {
+class DirenvSettingsTest : DirenvLightTestCase() {
 
     fun `test defaults are enabled and generous with timeout`() {
         val state = DirenvSettings.State()
