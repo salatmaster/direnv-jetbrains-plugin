@@ -6,6 +6,8 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-08-13
+
 ### Added
 
 - `.envrc` has an icon of its own, so it stands out among the shell scripts in a project rather than
@@ -131,7 +133,8 @@ All notable changes to this plugin are documented here. The format follows
 - direnv is not executed at all in projects that have not been trusted.
 - Environment values are never written to logs, run configurations, or any file under `.idea/`.
 
-[unreleased]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.1.6...HEAD
+[unreleased]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.1.7...HEAD
+[0.1.7]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.1.3...v0.1.4
