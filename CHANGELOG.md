@@ -6,6 +6,12 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `.envrc` has an icon of its own, so it stands out among the shell scripts in a project rather than
+  looking like one more of them. The file is still a Shell Script — it keeps its highlighting, and
+  the Marketplace still knows to offer this plugin to whoever opens one without it.
+
 ## [0.1.6] - 2026-08-12
 
 ### Added

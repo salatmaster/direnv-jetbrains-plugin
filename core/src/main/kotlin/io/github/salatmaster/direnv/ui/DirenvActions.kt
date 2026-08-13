@@ -11,6 +11,7 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import io.github.salatmaster.direnv.DirenvGuard
 import io.github.salatmaster.direnv.DirenvService
 import io.github.salatmaster.direnv.DirenvState
+import io.github.salatmaster.direnv.ENVRC_FILE_NAME
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -130,7 +131,7 @@ class DirenvOpenEnvrcAction : AnAction("Open .envrc") {
 
         val envrc = service.envrcPathFor(workingDir)
             ?: (service.state() as? DirenvState.Blocked)?.let { Paths.get(it.envrcPath) }
-            ?: workingDir.resolve(".envrc")
+            ?: workingDir.resolve(ENVRC_FILE_NAME)
 
         val file = LocalFileSystem.getInstance().refreshAndFindFileByNioFile(envrc)
         if (file == null) {

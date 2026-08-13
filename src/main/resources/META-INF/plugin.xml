@@ -64,6 +64,11 @@
              type only has to exist, and it is bundled with every IDE this plugin supports. -->
         <fileType name="Shell Script" fileNames=".envrc"/>
 
+        <!-- Only the icon is taken over; the file stays a Shell Script, so it keeps the highlighting
+             and the Marketplace association above. Without this an .envrc is indistinguishable from
+             every other shell script in the project tree. -->
+        <fileIconProvider implementation="io.github.salatmaster.direnv.ui.DirenvFileIconProvider"/>
+
         <projectService serviceImplementation="io.github.salatmaster.direnv.settings.DirenvSettings"/>
         <projectService serviceImplementation="io.github.salatmaster.direnv.DirenvService"/>
 

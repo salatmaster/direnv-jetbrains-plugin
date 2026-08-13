@@ -8,6 +8,7 @@ import com.intellij.ui.EditorNotificationProvider
 import io.github.salatmaster.direnv.DirenvGuard
 import io.github.salatmaster.direnv.DirenvService
 import io.github.salatmaster.direnv.DirenvState
+import io.github.salatmaster.direnv.ENVRC_FILE_NAME
 import java.nio.file.Paths
 import java.util.function.Function
 import javax.swing.JComponent
@@ -24,7 +25,7 @@ class DirenvEditorBanner : EditorNotificationProvider {
         project: Project,
         file: VirtualFile,
     ): Function<in FileEditor, out JComponent?>? {
-        if (file.name != ENVRC) return null
+        if (file.name != ENVRC_FILE_NAME) return null
         if (!DirenvGuard.mayRun(project)) return null
 
         val state = DirenvService.getInstance(project).state()
@@ -54,9 +55,5 @@ class DirenvEditorBanner : EditorNotificationProvider {
                 }
             }
         }
-    }
-
-    private companion object {
-        const val ENVRC = ".envrc"
     }
 }
