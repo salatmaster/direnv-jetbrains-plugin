@@ -1,11 +1,15 @@
 [versions]
+assertj = "3.27.6"
 changelog = "2.5.0"
 junit = "4.13.2"
+junitJupiter = "5.13.4"
 kotlin = "2.2.21"
 kotlinxSerialization = "1.9.0"
 
 [libraries]
+assertj = { group = "org.assertj", name = "assertj-core", version.ref = "assertj" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+junit-vintage-engine = { group = "org.junit.vintage", name = "junit-vintage-engine", version.ref = "junitJupiter" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 
 [plugins]

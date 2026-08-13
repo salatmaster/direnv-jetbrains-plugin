@@ -2,10 +2,8 @@ package io.github.salatmaster.direnv.ui
 
 import io.github.salatmaster.direnv.DirenvState
 import io.github.salatmaster.direnv.direnv.DirenvDiff
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
 
 class DirenvStatusPresentationTest {
 
@@ -18,9 +16,9 @@ class DirenvStatusPresentationTest {
             DirenvState.Loaded(diff(added = listOf("A", "B"), changed = listOf("C"))),
         ).text
 
-        assertTrue(text, text.contains("+2"))
-        assertTrue(text, text.contains("~1"))
-        assertTrue(text, text.contains("-0"))
+        assertThat(text).contains("+2")
+        assertThat(text).contains("~1")
+        assertThat(text).contains("-0")
     }
 
     @Test
@@ -29,23 +27,23 @@ class DirenvStatusPresentationTest {
             DirenvState.Loaded(diff(added = listOf("SECRET_TOKEN"))),
         )
 
-        assertFalse(presentation.text.contains("SECRET_TOKEN"))
-        assertFalse(presentation.tooltip.contains("SECRET_TOKEN"))
+        assertThat(presentation.text).doesNotContain("SECRET_TOKEN")
+        assertThat(presentation.tooltip).doesNotContain("SECRET_TOKEN")
     }
 
     @Test
     fun `an empty environment reads as inactive rather than as an error`() {
         val presentation = DirenvStatusPresentation.of(DirenvState.Loaded(diff()))
 
-        assertEquals(DirenvStatusPresentation.Kind.INACTIVE, presentation.kind)
+        assertThat(presentation.kind).isEqualTo(DirenvStatusPresentation.Kind.INACTIVE)
     }
 
     @Test
     fun `blocked state names the file and offers approval`() {
         val presentation = DirenvStatusPresentation.of(DirenvState.Blocked("/p/.envrc"))
 
-        assertEquals(DirenvStatusPresentation.Kind.BLOCKED, presentation.kind)
-        assertTrue(presentation.tooltip.contains("/p/.envrc"))
+        assertThat(presentation.kind).isEqualTo(DirenvStatusPresentation.Kind.BLOCKED)
+        assertThat(presentation.tooltip).contains("/p/.envrc")
     }
 
     @Test
@@ -53,8 +51,8 @@ class DirenvStatusPresentationTest {
         val missing = DirenvStatusPresentation.of(DirenvState.ExecutableMissing("direnv"))
         val failed = DirenvStatusPresentation.of(DirenvState.Failed("syntax error"))
 
-        assertEquals(DirenvStatusPresentation.Kind.NOT_INSTALLED, missing.kind)
-        assertEquals(DirenvStatusPresentation.Kind.FAILED, failed.kind)
+        assertThat(missing.kind).isEqualTo(DirenvStatusPresentation.Kind.NOT_INSTALLED)
+        assertThat(failed.kind).isEqualTo(DirenvStatusPresentation.Kind.FAILED)
     }
 
     @Test
@@ -64,32 +62,32 @@ class DirenvStatusPresentationTest {
         // they revoked approval.
         val presentation = DirenvStatusPresentation.of(DirenvState.Denied("/p/.envrc"))
 
-        assertEquals(DirenvStatusPresentation.Kind.BLOCKED, presentation.kind)
-        assertEquals("direnv blocked", presentation.text)
-        assertTrue(presentation.tooltip, presentation.tooltip.contains("/p/.envrc"))
-        assertTrue(presentation.tooltip, presentation.tooltip.contains("revoked"))
+        assertThat(presentation.kind).isEqualTo(DirenvStatusPresentation.Kind.BLOCKED)
+        assertThat(presentation.text).isEqualTo("direnv blocked")
+        assertThat(presentation.tooltip).contains("/p/.envrc")
+        assertThat(presentation.tooltip).contains("revoked")
     }
 
     @Test
     fun `blocked and denied are indistinguishable in the status bar text`() {
         // Both mean the same thing to the user: direnv will not run this until it is allowed.
-        assertEquals(
-            DirenvStatusPresentation.of(DirenvState.Blocked("/p/.envrc")).text,
-            DirenvStatusPresentation.of(DirenvState.Denied("/p/.envrc")).text,
-        )
+        assertThat(DirenvStatusPresentation.of(DirenvState.Denied("/p/.envrc")).text)
+            .isEqualTo(DirenvStatusPresentation.of(DirenvState.Blocked("/p/.envrc")).text)
     }
 
     @Test
     fun `failure tooltip carries the direnv message`() {
         val presentation = DirenvStatusPresentation.of(DirenvState.Failed("syntax error near line 3"))
 
-        assertTrue(presentation.tooltip.contains("syntax error near line 3"))
+        assertThat(presentation.tooltip).contains("syntax error near line 3")
     }
 
     @Test
     fun `loading and not-loaded states are represented`() {
-        assertEquals(DirenvStatusPresentation.Kind.LOADING, DirenvStatusPresentation.of(DirenvState.Loading).kind)
-        assertEquals(DirenvStatusPresentation.Kind.INACTIVE, DirenvStatusPresentation.of(DirenvState.NotLoaded).kind)
+        assertThat(DirenvStatusPresentation.of(DirenvState.Loading).kind)
+            .isEqualTo(DirenvStatusPresentation.Kind.LOADING)
+        assertThat(DirenvStatusPresentation.of(DirenvState.NotLoaded).kind)
+            .isEqualTo(DirenvStatusPresentation.Kind.INACTIVE)
     }
 
     @Test
@@ -106,8 +104,8 @@ class DirenvStatusPresentationTest {
 
         for (state in states) {
             val presentation = DirenvStatusPresentation.of(state)
-            assertTrue("empty text for $state", presentation.text.isNotBlank())
-            assertTrue("empty tooltip for $state", presentation.tooltip.isNotBlank())
+            assertThat(presentation.text).withFailMessage("empty text for $state").isNotBlank()
+            assertThat(presentation.tooltip).withFailMessage("empty tooltip for $state").isNotBlank()
         }
     }
 }

@@ -6,6 +6,7 @@ import io.github.salatmaster.direnv.direnv.GeneralCommandLineRunner
 import kotlinx.coroutines.runBlocking
 import java.nio.file.Files
 import java.nio.file.Path
+import org.assertj.core.api.Assertions.assertThat
 
 /**
  * Drives the real process runner against an executable that speaks direnv's protocol.
@@ -57,7 +58,7 @@ class DirenvEndToEndTest : DirenvLightTestCase() {
 
         runBlocking { service.load(base, force = true) }
 
-        assertEquals("e2e-value", service.cachedFor(base)?.entries?.get("E2E_VARIABLE"))
+        assertThat(service.cachedFor(base)?.entries?.get("E2E_VARIABLE")).isEqualTo("e2e-value")
     }
 
     fun `test running direnv does not recurse through the customizer`() {
@@ -70,7 +71,7 @@ class DirenvEndToEndTest : DirenvLightTestCase() {
         // inside this call, on the very command line that launches direnv.
         val state = runBlocking { service.load(base, force = true) }
 
-        assertNotNull("state=$state", service.cachedFor(base))
+        assertThat(service.cachedFor(base)).withFailMessage("state=$state").isNotNull()
     }
 
     fun `test a directory without envrc yields an empty environment rather than an error`() {
@@ -81,7 +82,7 @@ class DirenvEndToEndTest : DirenvLightTestCase() {
 
         val state = runBlocking { service.load(base, force = true) }
 
-        assertTrue("state=$state", state is DirenvState.Loaded)
-        assertTrue(service.cachedFor(base)!!.entries.isEmpty())
+        assertThat(state).isInstanceOf(DirenvState.Loaded::class.java)
+        assertThat(service.cachedFor(base)!!.entries).isEmpty()
     }
 }

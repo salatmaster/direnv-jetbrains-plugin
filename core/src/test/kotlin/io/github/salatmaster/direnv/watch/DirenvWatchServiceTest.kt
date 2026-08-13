@@ -12,6 +12,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import java.nio.file.Files
 import java.nio.file.Paths
+import org.assertj.core.api.Assertions.assertThat
 
 class DirenvWatchServiceTest : DirenvLightTestCase() {
 
@@ -48,16 +49,16 @@ class DirenvWatchServiceTest : DirenvLightTestCase() {
         return """{"FOO":"bar","DIRENV_WATCHES":"$encoded"}"""
     }
 
-    fun `test loading an environment registers the files it depends on`() = runBlocking {
+    fun `test loading an environment registers the files it depends on`() = runBlocking<Unit> {
         val flake = workDir.resolve("flake.lock").toString()
         runner.respondTo("export", DirenvProcessResult(0, exportWith(flake), ""))
 
         service.load(workDir, force = true)
 
-        assertTrue(watchService.watchedPaths().contains(Paths.get(flake)))
+        assertThat(watchService.watchedPaths()).contains(Paths.get(flake))
     }
 
-    fun `test files outside the project are registered too`() = runBlocking {
+    fun `test files outside the project are registered too`() = runBlocking<Unit> {
         // direnv's allow stamps live under the user's data directory. Missing them is what makes
         // an external `direnv allow` go unnoticed by the IDE.
         val stamp = Files.createTempFile("direnv-allow-stamp-outside", ".test").toString()
@@ -65,10 +66,10 @@ class DirenvWatchServiceTest : DirenvLightTestCase() {
 
         service.load(workDir, force = true)
 
-        assertTrue(watchService.watchedPaths().contains(Paths.get(stamp)))
+        assertThat(watchService.watchedPaths()).contains(Paths.get(stamp))
     }
 
-    fun `test reloading replaces the previous watch set`() = runBlocking {
+    fun `test reloading replaces the previous watch set`() = runBlocking<Unit> {
         val first = workDir.resolve("first.lock").toString()
         runner.respondTo("export", DirenvProcessResult(0, exportWith(first), ""))
         service.load(workDir, force = true)
@@ -77,11 +78,11 @@ class DirenvWatchServiceTest : DirenvLightTestCase() {
         runner.respondTo("export", DirenvProcessResult(0, exportWith(second), ""))
         service.load(workDir, force = true)
 
-        assertFalse(watchService.watchedPaths().contains(Paths.get(first)))
-        assertTrue(watchService.watchedPaths().contains(Paths.get(second)))
+        assertThat(watchService.watchedPaths()).doesNotContain(Paths.get(first))
+        assertThat(watchService.watchedPaths()).contains(Paths.get(second))
     }
 
-    fun `test a change to an unwatched file does not trigger direnv`() = runBlocking {
+    fun `test a change to an unwatched file does not trigger direnv`() = runBlocking<Unit> {
         runner.respondTo("export", DirenvProcessResult(0, exportWith(workDir.resolve("a.lock").toString()), ""))
         service.load(workDir, force = true)
         val before = runner.invocations.size
@@ -89,10 +90,10 @@ class DirenvWatchServiceTest : DirenvLightTestCase() {
         watchService.handleChangedPaths(listOf(workDir.resolve("unrelated.txt")))
         delay(DEBOUNCE_PLUS_MARGIN_MS)
 
-        assertEquals(before, runner.invocations.size)
+        assertThat(runner.invocations).hasSize(before)
     }
 
-    fun `test a change to a watched file triggers a reload`() = runBlocking {
+    fun `test a change to a watched file triggers a reload`() = runBlocking<Unit> {
         val lock = workDir.resolve("watched.lock")
         runner.respondTo("export", DirenvProcessResult(0, exportWith(lock.toString()), ""))
         service.load(workDir, force = true)
@@ -101,13 +102,11 @@ class DirenvWatchServiceTest : DirenvLightTestCase() {
         watchService.handleChangedPaths(listOf(lock))
         delay(DEBOUNCE_PLUS_MARGIN_MS)
 
-        assertTrue(
-            "expected a reload after a watched file changed",
-            runner.invocations.size > before,
-        )
+        assertThat(runner.invocations).withFailMessage("expected a reload after a watched file changed")
+            .hasSizeGreaterThan(before)
     }
 
-    fun `test a blocked envrc still registers its allow stamp for watching`() = runBlocking {
+    fun `test a blocked envrc still registers its allow stamp for watching`() = runBlocking<Unit> {
         // Without this, approving the .envrc in an external terminal would never reach the IDE,
         // because a blocked project has no environment and therefore had no watches at all.
         val stamp = Files.createTempFile("direnv-allow-stamp", ".test").toString()
@@ -127,10 +126,10 @@ class DirenvWatchServiceTest : DirenvLightTestCase() {
 
         service.load(workDir, force = true)
 
-        assertTrue(watchService.watchedPaths().contains(Paths.get(stamp)))
+        assertThat(watchService.watchedPaths()).contains(Paths.get(stamp))
     }
 
-    fun `test watching can be disabled in settings`() = runBlocking {
+    fun `test watching can be disabled in settings`() = runBlocking<Unit> {
         val lock = workDir.resolve("watched.lock")
         runner.respondTo("export", DirenvProcessResult(0, exportWith(lock.toString()), ""))
         service.load(workDir, force = true)
@@ -142,10 +141,10 @@ class DirenvWatchServiceTest : DirenvLightTestCase() {
         watchService.handleChangedPaths(listOf(lock))
         delay(DEBOUNCE_PLUS_MARGIN_MS)
 
-        assertEquals(before, runner.invocations.size)
+        assertThat(runner.invocations).hasSize(before)
     }
 
-    fun `test a registered watch set stays quiet while its files are unchanged`() = runBlocking {
+    fun `test a registered watch set stays quiet while its files are unchanged`() = runBlocking<Unit> {
         // The poll is what makes a terminal `direnv allow` reach the IDE, and it runs for as long
         // as the project lives — across every later test, since the light project is shared. A
         // watch set that reports a change when nothing changed therefore forces a reload into an
@@ -156,7 +155,8 @@ class DirenvWatchServiceTest : DirenvLightTestCase() {
 
         delay(POLL_PLUS_MARGIN_MS)
 
-        assertEquals("the poll reloaded although nothing changed", before, runner.invocations.size)
+        assertThat(runner.invocations).withFailMessage("the poll reloaded although nothing changed")
+            .hasSize(before)
     }
 
     private companion object {

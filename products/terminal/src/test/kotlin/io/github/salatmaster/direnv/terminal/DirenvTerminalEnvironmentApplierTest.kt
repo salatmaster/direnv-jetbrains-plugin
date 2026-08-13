@@ -1,9 +1,8 @@
 package io.github.salatmaster.direnv.terminal
 
 import io.github.salatmaster.direnv.direnv.DirenvEnvironment
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
 import java.nio.file.Paths
 import java.time.Instant
 
@@ -31,7 +30,7 @@ class DirenvTerminalEnvironmentApplierTest {
 
         DirenvTerminalEnvironmentApplier.apply(env(mapOf("FOO" to "bar")), setter::set)
 
-        assertEquals(listOf("FOO" to "bar"), setter.calls)
+        assertThat(setter.calls).isEqualTo(listOf("FOO" to "bar"))
     }
 
     @Test
@@ -42,7 +41,7 @@ class DirenvTerminalEnvironmentApplierTest {
 
         // The platform's setEnvironmentVariable removes the entry when the value is null,
         // so a null must be forwarded rather than replaced with an empty string.
-        assertEquals(listOf<Pair<String, String?>>("GONE" to null), setter.calls)
+        assertThat(setter.calls).isEqualTo(listOf<Pair<String, String?>>("GONE" to null))
     }
 
     @Test
@@ -56,8 +55,8 @@ class DirenvTerminalEnvironmentApplierTest {
 
         // Internal variables are hidden from the UI, but the shell still needs them: direnv's
         // own shell hook reads DIRENV_* to decide whether the environment is already applied.
-        assertEquals(2, setter.calls.size)
-        assertTrue(setter.calls.contains("DIRENV_DIFF" to "x"))
+        assertThat(setter.calls).hasSize(2)
+        assertThat(setter.calls).contains("DIRENV_DIFF" to "x")
     }
 
     @Test
@@ -66,6 +65,6 @@ class DirenvTerminalEnvironmentApplierTest {
 
         DirenvTerminalEnvironmentApplier.apply(env(emptyMap()), setter::set)
 
-        assertTrue(setter.calls.isEmpty())
+        assertThat(setter.calls).isEmpty()
     }
 }

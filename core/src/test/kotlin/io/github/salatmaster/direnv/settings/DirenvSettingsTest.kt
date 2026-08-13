@@ -3,18 +3,19 @@ package io.github.salatmaster.direnv.settings
 import com.intellij.openapi.util.JDOMUtil
 import com.intellij.util.xmlb.XmlSerializer
 import io.github.salatmaster.direnv.DirenvLightTestCase
+import org.assertj.core.api.Assertions.assertThat
 
 class DirenvSettingsTest : DirenvLightTestCase() {
 
     fun `test defaults are enabled and generous with timeout`() {
         val state = DirenvSettings.State()
 
-        assertTrue(state.enabled)
-        assertTrue(state.autoLoad)
-        assertTrue(state.watchFiles)
-        assertEquals("direnv", state.executablePath)
+        assertThat(state.enabled).isTrue()
+        assertThat(state.autoLoad).isTrue()
+        assertThat(state.watchFiles).isTrue()
+        assertThat(state.executablePath).isEqualTo("direnv")
         // Generous on purpose: a first nix or devbox build routinely takes minutes.
-        assertEquals(120, state.timeoutSeconds)
+        assertThat(state.timeoutSeconds).isEqualTo(120)
     }
 
     fun `test settings round-trip through serialization`() {
@@ -25,8 +26,8 @@ class DirenvSettingsTest : DirenvLightTestCase() {
         val reloaded = DirenvSettings.State()
         XmlSerializer.deserializeInto(reloaded, XmlSerializer.serialize(settings.state))
 
-        assertEquals("/opt/bin/direnv", reloaded.executablePath)
-        assertEquals(300, reloaded.timeoutSeconds)
+        assertThat(reloaded.executablePath).isEqualTo("/opt/bin/direnv")
+        assertThat(reloaded.timeoutSeconds).isEqualTo(300)
     }
 
     fun `test serialized state has no field capable of holding direnv output`() {
@@ -35,15 +36,15 @@ class DirenvSettingsTest : DirenvLightTestCase() {
         val serialized = JDOMUtil.write(XmlSerializer.serialize(settings.state))
 
         // extraEnv is user-authored configuration and may persist; a loaded environment must not.
-        assertFalse(serialized.contains("entries"))
-        assertFalse(serialized.contains("loadedEnvironment"))
-        assertFalse(serialized.contains("watches"))
+        assertThat(serialized).doesNotContain("entries")
+        assertThat(serialized).doesNotContain("loadedEnvironment")
+        assertThat(serialized).doesNotContain("watches")
     }
 
     fun `test timeout is exposed in milliseconds for the CLI`() {
         val settings = DirenvSettings.getInstance(project)
         settings.state.timeoutSeconds = 7
 
-        assertEquals(7_000, settings.timeoutMs())
+        assertThat(settings.timeoutMs()).isEqualTo(7_000)
     }
 }

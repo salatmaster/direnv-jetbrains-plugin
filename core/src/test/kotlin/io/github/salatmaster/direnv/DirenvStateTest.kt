@@ -1,16 +1,15 @@
 package io.github.salatmaster.direnv
 
 import io.github.salatmaster.direnv.direnv.DirenvDiff
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.Test
 
 class DirenvStateTest {
 
     @Test
     fun `both states awaiting approval report that they need it`() {
-        assertTrue(DirenvState.Blocked("/p/.envrc").needsApproval)
-        assertTrue(DirenvState.Denied("/p/.envrc").needsApproval)
+        assertThat(DirenvState.Blocked("/p/.envrc").needsApproval).isTrue()
+        assertThat(DirenvState.Denied("/p/.envrc").needsApproval).isTrue()
     }
 
     @Test
@@ -26,7 +25,7 @@ class DirenvStateTest {
         )
 
         for (state in approved) {
-            assertFalse("$state should not ask for approval", state.needsApproval)
+            assertThat(state.needsApproval).withFailMessage("$state should not ask for approval").isFalse()
         }
     }
 }
