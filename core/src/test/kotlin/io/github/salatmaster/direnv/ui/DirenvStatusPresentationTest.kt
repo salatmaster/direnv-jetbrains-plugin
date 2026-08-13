@@ -2,10 +2,10 @@ package io.github.salatmaster.direnv.ui
 
 import io.github.salatmaster.direnv.DirenvState
 import io.github.salatmaster.direnv.direnv.DirenvDiff
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 
 class DirenvStatusPresentationTest {
 
@@ -18,9 +18,9 @@ class DirenvStatusPresentationTest {
             DirenvState.Loaded(diff(added = listOf("A", "B"), changed = listOf("C"))),
         ).text
 
-        assertTrue(text, text.contains("+2"))
-        assertTrue(text, text.contains("~1"))
-        assertTrue(text, text.contains("-0"))
+        assertTrue(text.contains("+2"), text)
+        assertTrue(text.contains("~1"), text)
+        assertTrue(text.contains("-0"), text)
     }
 
     @Test
@@ -66,8 +66,8 @@ class DirenvStatusPresentationTest {
 
         assertEquals(DirenvStatusPresentation.Kind.BLOCKED, presentation.kind)
         assertEquals("direnv blocked", presentation.text)
-        assertTrue(presentation.tooltip, presentation.tooltip.contains("/p/.envrc"))
-        assertTrue(presentation.tooltip, presentation.tooltip.contains("revoked"))
+        assertTrue(presentation.tooltip.contains("/p/.envrc"), presentation.tooltip)
+        assertTrue(presentation.tooltip.contains("revoked"), presentation.tooltip)
     }
 
     @Test
@@ -106,8 +106,8 @@ class DirenvStatusPresentationTest {
 
         for (state in states) {
             val presentation = DirenvStatusPresentation.of(state)
-            assertTrue("empty text for $state", presentation.text.isNotBlank())
-            assertTrue("empty tooltip for $state", presentation.tooltip.isNotBlank())
+            assertTrue(presentation.text.isNotBlank(), "empty text for $state")
+            assertTrue(presentation.tooltip.isNotBlank(), "empty tooltip for $state")
         }
     }
 }

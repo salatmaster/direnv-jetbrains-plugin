@@ -1,8 +1,8 @@
 package io.github.salatmaster.direnv.direnv
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Test
 import java.nio.file.Paths
 import java.time.Instant
 
@@ -22,7 +22,7 @@ class DirenvEnvironmentTest {
     fun `toString never exposes values`() {
         val rendered = env(mapOf("API_TOKEN" to secret)).toString()
 
-        assertFalse("value leaked into toString: $rendered", rendered.contains(secret))
+        assertFalse(rendered.contains(secret), "value leaked into toString: $rendered")
     }
 
     @Test

@@ -1,9 +1,9 @@
 package io.github.salatmaster.direnv.terminal
 
 import io.github.salatmaster.direnv.direnv.DirenvEnvironment
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 import java.nio.file.Paths
 import java.time.Instant
 

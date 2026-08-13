@@ -1,10 +1,10 @@
 package io.github.salatmaster.direnv.direnv
 
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 import java.nio.file.Paths
 
 class DirenvCliTest {
@@ -85,8 +85,10 @@ class DirenvCliTest {
 
         val failed = cli.export(workDir) as DirenvOutcome.Failed
 
-        assertFalse("escape code leaked into the message: ${failed.message}",
-            failed.message.contains("\u001B"))
+        assertFalse(
+            failed.message.contains("\u001B"),
+            "escape code leaked into the message: ${failed.message}",
+        )
     }
 
     @Test

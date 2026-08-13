@@ -1,9 +1,9 @@
 package io.github.salatmaster.direnv
 
 import io.github.salatmaster.direnv.direnv.DirenvDiff
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 
 class DirenvStateTest {
 
@@ -26,7 +26,7 @@ class DirenvStateTest {
         )
 
         for (state in approved) {
-            assertFalse("$state should not ask for approval", state.needsApproval)
+            assertFalse(state.needsApproval, "$state should not ask for approval")
         }
     }
 }
