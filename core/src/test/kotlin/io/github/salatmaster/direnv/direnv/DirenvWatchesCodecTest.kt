@@ -1,7 +1,6 @@
 package io.github.salatmaster.direnv.direnv
 
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.nio.file.Paths
 
@@ -16,7 +15,7 @@ class DirenvWatchesCodecTest {
 
         val decoded = DirenvWatchesCodec.decode(DirenvWatchesCodec.encode(original))
 
-        assertEquals(original, decoded)
+        assertThat(decoded).isEqualTo(original)
     }
 
     @Test
@@ -26,21 +25,21 @@ class DirenvWatchesCodecTest {
 
         val decoded = DirenvWatchesCodec.decode(encoded)
 
-        assertEquals(1, decoded.size)
-        assertEquals(Paths.get("/home/u/.direnvrc"), decoded[0].path)
-        assertEquals(false, decoded[0].exists)
+        assertThat(decoded).hasSize(1)
+        assertThat(decoded[0].path).isEqualTo(Paths.get("/home/u/.direnvrc"))
+        assertThat(decoded[0].exists).isFalse()
     }
 
     @Test
     fun `returns empty list for blank input`() {
-        assertTrue(DirenvWatchesCodec.decode("").isEmpty())
-        assertTrue(DirenvWatchesCodec.decode("   ").isEmpty())
+        assertThat(DirenvWatchesCodec.decode("")).isEmpty()
+        assertThat(DirenvWatchesCodec.decode("   ")).isEmpty()
     }
 
     @Test
     fun `returns empty list instead of throwing on malformed input`() {
-        assertTrue(DirenvWatchesCodec.decode("not-valid-base64!!!").isEmpty())
-        assertTrue(DirenvWatchesCodec.decode("aGVsbG8gd29ybGQ=").isEmpty())
+        assertThat(DirenvWatchesCodec.decode("not-valid-base64!!!")).isEmpty()
+        assertThat(DirenvWatchesCodec.decode("aGVsbG8gd29ybGQ=")).isEmpty()
     }
 
     @Test
@@ -49,7 +48,7 @@ class DirenvWatchesCodecTest {
 
         val decoded = DirenvWatchesCodec.decode(DirenvWatchesCodec.encodeRawJson(json))
 
-        assertEquals(1, decoded.size)
-        assertEquals(Paths.get("/tmp/ok"), decoded[0].path)
+        assertThat(decoded).hasSize(1)
+        assertThat(decoded[0].path).isEqualTo(Paths.get("/tmp/ok"))
     }
 }

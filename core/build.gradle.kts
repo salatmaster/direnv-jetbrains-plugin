@@ -25,6 +25,8 @@ dependencies {
     // (platform/util .../xmlb/JsonHelper.kt). Bundling a second copy risks a classloader conflict.
     compileOnly(libs.kotlinx.serialization.json)
 
+    testImplementation(libs.assertj)
+
     // Neither of these is a leftover. BasePlatformTestCase extends UsefulTestCase extends
     // junit.framework.TestCase, so every test that needs a project is a JUnit 3 test: junit:junit
     // is where that base class lives, and only the vintage engine can run it — Jupiter cannot, at

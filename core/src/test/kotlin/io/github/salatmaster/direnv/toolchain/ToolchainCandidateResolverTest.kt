@@ -1,7 +1,6 @@
 package io.github.salatmaster.direnv.toolchain
 
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.io.File
 import java.nio.file.Files
@@ -28,7 +27,7 @@ class ToolchainCandidateResolverTest {
             executable = "java",
         )
 
-        assertEquals(home, resolved)
+        assertThat(resolved).isEqualTo(home)
     }
 
     @Test
@@ -41,7 +40,7 @@ class ToolchainCandidateResolverTest {
             executable = "java",
         )
 
-        assertEquals(home, resolved)
+        assertThat(resolved).isEqualTo(home)
     }
 
     @Test
@@ -53,18 +52,16 @@ class ToolchainCandidateResolverTest {
             executable = "java",
         )
 
-        assertNull(resolved)
+        assertThat(resolved).isNull()
     }
 
     @Test
     fun `returns null when the environment provides nothing`() {
-        assertNull(
-            ToolchainCandidateResolver.resolve(
+        assertThat(ToolchainCandidateResolver.resolve(
                 entries = emptyMap(),
                 homeVariable = "JAVA_HOME",
                 executable = "java",
-            )
-        )
+            )).isNull()
     }
 
     @Test
@@ -77,7 +74,7 @@ class ToolchainCandidateResolverTest {
             executable = "java",
         )
 
-        assertEquals(home, resolved)
+        assertThat(resolved).isEqualTo(home)
     }
 
     @Test
@@ -91,7 +88,7 @@ class ToolchainCandidateResolverTest {
             executable = "go",
         )
 
-        assertEquals(real, resolved)
+        assertThat(resolved).isEqualTo(real)
     }
 
     @Test
@@ -102,6 +99,6 @@ class ToolchainCandidateResolverTest {
             executable = "java",
         )
 
-        assertNull(resolved)
+        assertThat(resolved).isNull()
     }
 }

@@ -23,6 +23,12 @@ import java.nio.file.Paths
  * - `DirenvSettings` keeps whatever a test assigned to it.
  *
  * Resetting all three in one place is what stops the next test class from rediscovering this.
+ *
+ * One inherited constraint is worth knowing before writing a test here. JUnit 3 recognises a test
+ * only if the method returns void, and an expression-bodied test ends in the type of its last
+ * statement — which for an AssertJ assertion is the assertion object, not Unit. Such a method is
+ * not a test at all, and the class reports "No tests found" instead of failing anything, so the
+ * subclasses write `= runBlocking<Unit> { ... }` rather than `= runBlocking { ... }`.
  */
 abstract class DirenvLightTestCase : BasePlatformTestCase() {
 

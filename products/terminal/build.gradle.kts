@@ -18,6 +18,8 @@ testing {
 
 dependencies {
     implementation(project(":core"))
+    testImplementation(libs.assertj)
+
     // Kept for the same reason as in :core — a test that needs a project would be a JUnit 3
     // test, and only the vintage engine runs those.
     testImplementation(libs.junit)

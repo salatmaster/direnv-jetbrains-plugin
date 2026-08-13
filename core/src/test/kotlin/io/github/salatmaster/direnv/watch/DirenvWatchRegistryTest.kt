@@ -1,9 +1,7 @@
 package io.github.salatmaster.direnv.watch
 
 import io.github.salatmaster.direnv.direnv.DirenvWatch
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -20,7 +18,7 @@ class DirenvWatchRegistryTest {
         val registry = DirenvWatchRegistry()
         registry.replace(Paths.get("/p"), listOf(watch("/p/.envrc")))
 
-        assertTrue(registry.reloadTargetFor(Paths.get("/p/.envrc")) != null)
+        assertThat(registry.reloadTargetFor(Paths.get("/p/.envrc"))).isNotNull()
     }
 
     @Test
@@ -28,7 +26,7 @@ class DirenvWatchRegistryTest {
         val registry = DirenvWatchRegistry()
         registry.replace(Paths.get("/p"), listOf(watch("/p/flake.lock")))
 
-        assertEquals(abs("/p"), registry.reloadTargetFor(Paths.get("/p/flake.lock")))
+        assertThat(registry.reloadTargetFor(Paths.get("/p/flake.lock"))).isEqualTo(abs("/p"))
     }
 
     @Test
@@ -36,7 +34,7 @@ class DirenvWatchRegistryTest {
         val registry = DirenvWatchRegistry()
         registry.replace(Paths.get("/p"), listOf(watch("/p/.envrc")))
 
-        assertEquals(null, registry.reloadTargetFor(Paths.get("/p/src/Main.kt")))
+        assertThat(registry.reloadTargetFor(Paths.get("/p/src/Main.kt"))).isEqualTo(null)
     }
 
     @Test
@@ -47,7 +45,7 @@ class DirenvWatchRegistryTest {
         val stamp = "/home/u/.local/share/direnv/allow/8be319f2"
         registry.replace(Paths.get("/p"), listOf(watch(stamp)))
 
-        assertEquals(abs("/p"), registry.reloadTargetFor(Paths.get(stamp)))
+        assertThat(registry.reloadTargetFor(Paths.get(stamp))).isEqualTo(abs("/p"))
     }
 
     @Test
@@ -57,8 +55,8 @@ class DirenvWatchRegistryTest {
 
         registry.replace(Paths.get("/p"), listOf(watch("/p/new.txt")))
 
-        assertEquals(null, registry.reloadTargetFor(Paths.get("/p/old.txt")))
-        assertEquals(abs("/p"), registry.reloadTargetFor(Paths.get("/p/new.txt")))
+        assertThat(registry.reloadTargetFor(Paths.get("/p/old.txt"))).isEqualTo(null)
+        assertThat(registry.reloadTargetFor(Paths.get("/p/new.txt"))).isEqualTo(abs("/p"))
     }
 
     @Test
@@ -67,8 +65,8 @@ class DirenvWatchRegistryTest {
         registry.replace(Paths.get("/p"), listOf(watch("/p/.envrc")))
         registry.replace(Paths.get("/p/nested"), listOf(watch("/p/nested/.envrc")))
 
-        assertEquals(abs("/p"), registry.reloadTargetFor(Paths.get("/p/.envrc")))
-        assertEquals(abs("/p/nested"), registry.reloadTargetFor(Paths.get("/p/nested/.envrc")))
+        assertThat(registry.reloadTargetFor(Paths.get("/p/.envrc"))).isEqualTo(abs("/p"))
+        assertThat(registry.reloadTargetFor(Paths.get("/p/nested/.envrc"))).isEqualTo(abs("/p/nested"))
     }
 
     @Test
@@ -76,10 +74,7 @@ class DirenvWatchRegistryTest {
         val registry = DirenvWatchRegistry()
         registry.replace(Paths.get("/p"), listOf(watch("/p/.envrc"), watch("/p/flake.lock")))
 
-        assertEquals(
-            setOf(abs("/p/.envrc"), abs("/p/flake.lock")),
-            registry.allWatchedPaths(),
-        )
+        assertThat(registry.allWatchedPaths()).isEqualTo(setOf(abs("/p/.envrc"), abs("/p/flake.lock")))
     }
 
     @Test
@@ -89,8 +84,8 @@ class DirenvWatchRegistryTest {
 
         registry.clear()
 
-        assertTrue(registry.allWatchedPaths().isEmpty())
-        assertEquals(null, registry.reloadTargetFor(Paths.get("/p/.envrc")))
+        assertThat(registry.allWatchedPaths()).isEmpty()
+        assertThat(registry.reloadTargetFor(Paths.get("/p/.envrc"))).isEqualTo(null)
     }
 
     @Test
@@ -98,7 +93,7 @@ class DirenvWatchRegistryTest {
         val registry = DirenvWatchRegistry()
         registry.replace(Paths.get("/p"), listOf(watch("/p/sub/../.envrc")))
 
-        assertEquals(abs("/p"), registry.reloadTargetFor(Paths.get("/p/.envrc")))
+        assertThat(registry.reloadTargetFor(Paths.get("/p/.envrc"))).isEqualTo(abs("/p"))
     }
 
     @Test
@@ -110,11 +105,11 @@ class DirenvWatchRegistryTest {
         val registry = DirenvWatchRegistry()
         registry.replace(Paths.get("/p"), listOf(DirenvWatch(stamp, 0L, false)))
 
-        assertTrue(registry.staleTargets().isEmpty())
+        assertThat(registry.staleTargets()).isEmpty()
 
         Files.writeString(stamp, "approved")
 
-        assertEquals(setOf(abs("/p")), registry.staleTargets())
+        assertThat(registry.staleTargets()).isEqualTo(setOf(abs("/p")))
     }
 
     @Test
@@ -125,12 +120,12 @@ class DirenvWatchRegistryTest {
         val registry = DirenvWatchRegistry()
         registry.replace(Paths.get("/p"), listOf(DirenvWatch(file, recordedTime, true)))
 
-        assertTrue(registry.staleTargets().isEmpty())
+        assertThat(registry.staleTargets()).isEmpty()
 
         Files.setLastModifiedTime(file, java.nio.file.attribute.FileTime.fromMillis(
             (recordedTime + 60) * 1000))
 
-        assertEquals(setOf(abs("/p")), registry.staleTargets())
+        assertThat(registry.staleTargets()).isEqualTo(setOf(abs("/p")))
     }
 
     @Test
@@ -140,15 +135,15 @@ class DirenvWatchRegistryTest {
         val registry = DirenvWatchRegistry()
         registry.replace(Paths.get("/p"), listOf(DirenvWatch(stamp, 0L, false)))
         Files.writeString(stamp, "approved")
-        assertEquals(setOf(abs("/p")), registry.staleTargets())
+        assertThat(registry.staleTargets()).isEqualTo(setOf(abs("/p")))
 
         registry.rebaseline()
 
-        assertTrue(registry.staleTargets().isEmpty())
+        assertThat(registry.staleTargets()).isEmpty()
     }
 
     @Test
     fun `an unknown file yields no reload target when nothing is registered`() {
-        assertFalse(DirenvWatchRegistry().reloadTargetFor(Paths.get("/p/.envrc")) != null)
+        assertThat(DirenvWatchRegistry().reloadTargetFor(Paths.get("/p/.envrc"))).isNull()
     }
 }

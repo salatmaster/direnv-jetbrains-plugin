@@ -1,9 +1,6 @@
 package io.github.salatmaster.direnv.direnv
 
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.nio.file.Paths
 
@@ -30,8 +27,8 @@ class DirenvCliTest {
         val outcome = cli.export(workDir)
 
         val loaded = outcome as DirenvOutcome.Loaded
-        assertEquals("bar", loaded.environment.entries["FOO"])
-        assertEquals(watches, loaded.environment.watches)
+        assertThat(loaded.environment.entries["FOO"]).isEqualTo("bar")
+        assertThat(loaded.environment.watches).isEqualTo(watches)
     }
 
     @Test
@@ -40,7 +37,7 @@ class DirenvCliTest {
 
         cli.export(workDir)
 
-        assertEquals("dumb", runner.invocations.single().extraEnv["TERM"])
+        assertThat(runner.invocations.single().extraEnv["TERM"]).isEqualTo("dumb")
     }
 
     @Test
@@ -50,8 +47,8 @@ class DirenvCliTest {
         cli.export(workDir)
 
         val invocation = runner.invocations.single()
-        assertEquals(listOf("export", "json"), invocation.args)
-        assertEquals(workDir, invocation.workingDir)
+        assertThat(invocation.args).isEqualTo(listOf("export", "json"))
+        assertThat(invocation.workingDir).isEqualTo(workDir)
     }
 
     @Test
@@ -63,7 +60,7 @@ class DirenvCliTest {
 
         val outcome = cli.export(workDir)
 
-        assertEquals("/p/.envrc", (outcome as DirenvOutcome.Blocked).envrcPath)
+        assertThat((outcome as DirenvOutcome.Blocked).envrcPath).isEqualTo("/p/.envrc")
     }
 
     @Test
@@ -72,8 +69,8 @@ class DirenvCliTest {
 
         val failed = cli.export(workDir) as DirenvOutcome.Failed
 
-        assertTrue(failed.message.contains("syntax error"))
-        assertEquals(2, failed.exitCode)
+        assertThat(failed.message).contains("syntax error")
+        assertThat(failed.exitCode).isEqualTo(2)
     }
 
     @Test
@@ -85,10 +82,9 @@ class DirenvCliTest {
 
         val failed = cli.export(workDir) as DirenvOutcome.Failed
 
-        assertFalse(
-            failed.message.contains("\u001B"),
-            "escape code leaked into the message: ${failed.message}",
-        )
+        assertThat(failed.message)
+            .withFailMessage("escape code leaked into the message: ${failed.message}")
+            .doesNotContain("\u001B")
     }
 
     @Test
@@ -105,14 +101,14 @@ class DirenvCliTest {
 
         val blocked = cli.export(workDir) as DirenvOutcome.Blocked
 
-        assertEquals(listOf(DirenvWatch(stamp, 0L, true)), blocked.watches)
+        assertThat(blocked.watches).isEqualTo(listOf(DirenvWatch(stamp, 0L, true)))
     }
 
     @Test
     fun `export reports a missing executable distinctly`() {
         runner.executableMissing = true
 
-        assertTrue(cli.export(workDir) is DirenvOutcome.ExecutableNotFound)
+        assertThat(cli.export(workDir)).isInstanceOf(DirenvOutcome.ExecutableNotFound::class.java)
     }
 
     @Test
@@ -128,10 +124,10 @@ class DirenvCliTest {
 
         val denied = cli.export(workDir) as DirenvOutcome.Denied
 
-        assertEquals(Paths.get("/p/.envrc").toString(), denied.envrcPath)
+        assertThat(denied.envrcPath).isEqualTo(Paths.get("/p/.envrc").toString())
         // Kept for the same reason as on a blocked outcome: the allow stamp is in there, and it is
         // what lets an approval granted in a terminal reach the IDE.
-        assertEquals(listOf(DirenvWatch(stamp, 0L, true)), denied.watches)
+        assertThat(denied.watches).isEqualTo(listOf(DirenvWatch(stamp, 0L, true)))
     }
 
     @Test
@@ -143,7 +139,7 @@ class DirenvCliTest {
             DirenvProcessResult(0, """{"DIRENV_FILE":"/p/.envrc","DIRENV_WATCHES":"$encoded"}""", ""),
         )
 
-        assertTrue(cli.export(workDir) is DirenvOutcome.Loaded)
+        assertThat(cli.export(workDir)).isInstanceOf(DirenvOutcome.Loaded::class.java)
     }
 
     @Test
@@ -163,7 +159,7 @@ class DirenvCliTest {
 
         val loaded = cli.export(workDir) as DirenvOutcome.Loaded
 
-        assertEquals("bar", loaded.environment.entries["FOO"])
+        assertThat(loaded.environment.entries["FOO"]).isEqualTo("bar")
     }
 
     @Test
@@ -173,7 +169,7 @@ class DirenvCliTest {
         val encoded = DirenvWatchesCodec.encode(listOf(DirenvWatch(stamp, 0L, true)))
         runner.respondTo("export", DirenvProcessResult(0, """{"DIRENV_WATCHES":"$encoded"}""", ""))
 
-        assertTrue(cli.export(workDir) is DirenvOutcome.Loaded)
+        assertThat(cli.export(workDir)).isInstanceOf(DirenvOutcome.Loaded::class.java)
     }
 
     @Test
@@ -184,8 +180,8 @@ class DirenvCliTest {
 
         // Reporting this as ExecutableNotFound would send the user to the installation guide for
         // a problem that has nothing to do with installation.
-        assertTrue(outcome is DirenvOutcome.Failed)
-        assertTrue((outcome as DirenvOutcome.Failed).message.contains("cannot start process"))
+        assertThat(outcome).isInstanceOf(DirenvOutcome.Failed::class.java)
+        assertThat((outcome as DirenvOutcome.Failed).message).contains("cannot start process")
     }
 
     @Test
@@ -194,7 +190,7 @@ class DirenvCliTest {
 
         val loaded = cli.export(workDir) as DirenvOutcome.Loaded
 
-        assertTrue(loaded.environment.entries.isEmpty())
+        assertThat(loaded.environment.entries).isEmpty()
     }
 
     @Test
@@ -203,7 +199,7 @@ class DirenvCliTest {
 
         val loaded = cli.export(workDir) as DirenvOutcome.Loaded
 
-        assertEquals(Paths.get("/p/.envrc"), loaded.environment.loadedRcPath)
+        assertThat(loaded.environment.loadedRcPath).isEqualTo(Paths.get("/p/.envrc"))
     }
 
     @Test
@@ -212,7 +208,7 @@ class DirenvCliTest {
 
         val loaded = cli.export(workDir) as DirenvOutcome.Loaded
 
-        assertNull(loaded.environment.loadedRcPath)
+        assertThat(loaded.environment.loadedRcPath).isNull()
     }
 
     @Test
@@ -220,7 +216,7 @@ class DirenvCliTest {
         val envrc = Paths.get("/p/.envrc")
         cli.allow(envrc)
 
-        assertEquals(listOf("allow", envrc.toString()), runner.invocations.single().args)
+        assertThat(runner.invocations.single().args).isEqualTo(listOf("allow", envrc.toString()))
     }
 
     @Test
@@ -228,20 +224,20 @@ class DirenvCliTest {
         val envrc = Paths.get("/p/.envrc")
         cli.deny(envrc)
 
-        assertEquals(listOf("deny", envrc.toString()), runner.invocations.single().args)
+        assertThat(runner.invocations.single().args).isEqualTo(listOf("deny", envrc.toString()))
     }
 
     @Test
     fun `version returns the reported version string`() {
         runner.respondTo("version", DirenvProcessResult(0, "2.37.1\n", ""))
 
-        assertEquals("2.37.1", cli.version())
+        assertThat(cli.version()).isEqualTo("2.37.1")
     }
 
     @Test
     fun `version returns null when direnv is absent`() {
         runner.executableMissing = true
 
-        assertNull(cli.version())
+        assertThat(cli.version()).isNull()
     }
 }

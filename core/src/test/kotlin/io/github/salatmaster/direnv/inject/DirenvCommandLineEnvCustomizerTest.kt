@@ -9,6 +9,7 @@ import io.github.salatmaster.direnv.direnv.DirenvProcessResult
 import io.github.salatmaster.direnv.direnv.FakeDirenvProcessRunner
 import kotlinx.coroutines.runBlocking
 import java.nio.file.Paths
+import org.assertj.core.api.Assertions.assertThat
 
 class DirenvCommandLineEnvCustomizerTest : DirenvLightTestCase() {
 
@@ -43,7 +44,7 @@ class DirenvCommandLineEnvCustomizerTest : DirenvLightTestCase() {
 
         customizer.customizeEnv(commandLineInProject(), environment)
 
-        assertEquals("bar", environment["FOO"])
+        assertThat(environment["FOO"]).isEqualTo("bar")
     }
 
     fun `test removes variables direnv reported as unset`() {
@@ -52,7 +53,7 @@ class DirenvCommandLineEnvCustomizerTest : DirenvLightTestCase() {
 
         customizer.customizeEnv(commandLineInProject(), environment)
 
-        assertFalse(environment.containsKey("OBSOLETE"))
+        assertThat(environment).doesNotContainKey("OBSOLETE")
     }
 
     fun `test leaves unrelated variables untouched`() {
@@ -61,7 +62,7 @@ class DirenvCommandLineEnvCustomizerTest : DirenvLightTestCase() {
 
         customizer.customizeEnv(commandLineInProject(), environment)
 
-        assertEquals("/home/u", environment["HOME"])
+        assertThat(environment["HOME"]).isEqualTo("/home/u")
     }
 
     fun `test skips command lines the plugin created itself`() {
@@ -71,7 +72,7 @@ class DirenvCommandLineEnvCustomizerTest : DirenvLightTestCase() {
 
         customizer.customizeEnv(commandLine, environment)
 
-        assertTrue(environment.isEmpty())
+        assertThat(environment).isEmpty()
     }
 
     fun `test skips command lines without a working directory`() {
@@ -80,7 +81,7 @@ class DirenvCommandLineEnvCustomizerTest : DirenvLightTestCase() {
 
         customizer.customizeEnv(GeneralCommandLine("echo"), environment)
 
-        assertTrue(environment.isEmpty())
+        assertThat(environment).isEmpty()
     }
 
     fun `test skips working directories outside any open project`() {
@@ -91,7 +92,7 @@ class DirenvCommandLineEnvCustomizerTest : DirenvLightTestCase() {
 
         customizer.customizeEnv(outside, environment)
 
-        assertFalse(environment.containsKey("FOO"))
+        assertThat(environment).doesNotContainKey("FOO")
     }
 
     fun `test does nothing when no environment has been loaded`() {
@@ -99,7 +100,7 @@ class DirenvCommandLineEnvCustomizerTest : DirenvLightTestCase() {
 
         customizer.customizeEnv(commandLineInProject(), environment)
 
-        assertTrue(environment.isEmpty())
+        assertThat(environment).isEmpty()
     }
 
     fun `test never invokes direnv itself`() {
@@ -107,6 +108,6 @@ class DirenvCommandLineEnvCustomizerTest : DirenvLightTestCase() {
 
         customizer.customizeEnv(commandLineInProject(), environment)
 
-        assertTrue("customizer must serve cache only", runner.invocations.isEmpty())
+        assertThat(runner.invocations).withFailMessage("customizer must serve cache only").isEmpty()
     }
 }

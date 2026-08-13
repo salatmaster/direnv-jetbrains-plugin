@@ -1,7 +1,6 @@
 package io.github.salatmaster.direnv.direnv
 
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.nio.file.Paths
 import java.time.Instant
@@ -22,14 +21,14 @@ class DirenvEnvironmentTest {
     fun `toString never exposes values`() {
         val rendered = env(mapOf("API_TOKEN" to secret)).toString()
 
-        assertFalse(rendered.contains(secret), "value leaked into toString: $rendered")
+        assertThat(rendered).withFailMessage("value leaked into toString: $rendered").doesNotContain(secret)
     }
 
     @Test
     fun `toString does not expose variable names either`() {
         val rendered = env(mapOf("API_TOKEN" to secret)).toString()
 
-        assertFalse(rendered.contains("API_TOKEN"))
+        assertThat(rendered).doesNotContain("API_TOKEN")
     }
 
     @Test
@@ -38,7 +37,7 @@ class DirenvEnvironmentTest {
 
         env(mapOf("NEW" to "value")).applyTo(target)
 
-        assertEquals(mapOf("KEEP" to "1", "NEW" to "value"), target)
+        assertThat(target).isEqualTo(mapOf("KEEP" to "1", "NEW" to "value"))
     }
 
     @Test
@@ -47,7 +46,7 @@ class DirenvEnvironmentTest {
 
         env(mapOf("GONE" to null)).applyTo(target)
 
-        assertEquals(mapOf("KEEP" to "1"), target)
+        assertThat(target).isEqualTo(mapOf("KEEP" to "1"))
     }
 
     @Test
@@ -58,31 +57,31 @@ class DirenvEnvironmentTest {
             mapOf("ADDED" to "a", "CHANGED" to "after", "REMOVED" to null)
         ).diffAgainst(base)
 
-        assertEquals(listOf("ADDED"), diff.added)
-        assertEquals(listOf("CHANGED"), diff.changed)
-        assertEquals(listOf("REMOVED"), diff.removed)
+        assertThat(diff.added).isEqualTo(listOf("ADDED"))
+        assertThat(diff.changed).isEqualTo(listOf("CHANGED"))
+        assertThat(diff.removed).isEqualTo(listOf("REMOVED"))
     }
 
     @Test
     fun `diff ignores entries whose value is unchanged`() {
         val diff = env(mapOf("SAME" to "v")).diffAgainst(mapOf("SAME" to "v"))
 
-        assertEquals(emptyList<String>(), diff.added)
-        assertEquals(emptyList<String>(), diff.changed)
-        assertEquals(emptyList<String>(), diff.removed)
+        assertThat(diff.added).isEqualTo(emptyList<String>())
+        assertThat(diff.changed).isEqualTo(emptyList<String>())
+        assertThat(diff.removed).isEqualTo(emptyList<String>())
     }
 
     @Test
     fun `diff does not report removal of a variable that was not set`() {
         val diff = env(mapOf("NEVER_SET" to null)).diffAgainst(emptyMap())
 
-        assertEquals(emptyList<String>(), diff.removed)
+        assertThat(diff.removed).isEqualTo(emptyList<String>())
     }
 
     @Test
     fun `internal DIRENV_ variables are excluded from the diff`() {
         val diff = env(mapOf("DIRENV_DIFF" to "x", "REAL" to "y")).diffAgainst(emptyMap())
 
-        assertEquals(listOf("REAL"), diff.added)
+        assertThat(diff.added).isEqualTo(listOf("REAL"))
     }
 }
