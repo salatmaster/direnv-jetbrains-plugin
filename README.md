@@ -162,6 +162,29 @@ Stated plainly, because a plugin that hides these costs you an afternoon:
 - SDK suggestions currently cover Java. Go, Python and Node.js reuse the same tested resolver and
   need only their product module.
 
+## When the environment does not arrive
+
+A process starting without the direnv environment looks exactly like a process starting with it, so
+the plugin explains itself rather than leaving you to guess. Turn its logging on in **Help →
+Diagnostic Tools → Debug Log Settings** by adding
+
+```
+io.github.salatmaster.direnv
+```
+
+then reproduce the problem and open **Help → Show Log in Finder**. Every process the IDE starts
+leaves one line: either how many variables were injected, or why none were.
+
+| The log says | What it means |
+| --- | --- |
+| `no environment is loaded for it` | direnv has not run for that directory. Check the status bar; if it shows nothing, the project may have opened before direnv finished. |
+| `no open project contains it` | the working directory lies outside every content root of every open project. The plugin will not guess which project's environment to use, because guessing wrong leaks one project's secrets into another. |
+| `direnv is off or the project is untrusted` | either the plugin is disabled under Tools → direnv, or the project has not been trusted — an `.envrc` is arbitrary shell code, so untrusted projects never run one. |
+| `the command line has no working directory` | the process was started without one, and there is nothing to resolve an environment against. |
+
+Those lines are the useful part of a bug report. They name no variables and no values: direnv output
+is routinely secret, and even a name can disclose which service a project talks to.
+
 ## Building
 
 ```bash

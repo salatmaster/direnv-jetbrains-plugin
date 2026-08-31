@@ -39,11 +39,49 @@ class DirenvCommandLineEnvCustomizer : CommandLineEnvCustomizer {
             // Must be first: this is what stops us recursing into our own direnv invocation.
             if (DirenvInternalMarker.isMarked(commandLine)) return
 
-            val workingDir = commandLine.workingDirectory ?: return
-            val project = resolveProject(workingDir) ?: return
-            if (!DirenvGuard.mayRun(project)) return
+            // Every skip below is reported. Injection failing is invisible by nature — the process
+            // simply starts without the variables — and there are four separate reasons for it, so
+            // without this a report of "my run configuration sees nothing" cannot be told apart
+            // from any of the others. The lines are debug-level because this runs for every process
+            // the IDE starts; see the README for turning the category on.
+            val workingDir = commandLine.workingDirectory
+            if (workingDir == null) {
+                if (log.isDebugEnabled) log.debug("Not injecting: the command line has no working directory")
+                return
+            }
 
-            DirenvService.getInstance(project).cachedFor(workingDir)?.applyTo(environment)
+            val project = resolveProject(workingDir)
+            if (project == null) {
+                if (log.isDebugEnabled) {
+                    log.debug("Not injecting into a process in $workingDir: no open project contains it")
+                }
+                return
+            }
+
+            if (!DirenvGuard.mayRun(project)) {
+                if (log.isDebugEnabled) {
+                    log.debug(
+                        "Not injecting into a process in $workingDir: " +
+                            "direnv is off or the project is untrusted"
+                    )
+                }
+                return
+            }
+
+            val loaded = DirenvService.getInstance(project).cachedFor(workingDir)
+            if (loaded == null) {
+                if (log.isDebugEnabled) {
+                    log.debug("Not injecting into a process in $workingDir: no environment is loaded for it")
+                }
+                return
+            }
+
+            loaded.applyTo(environment)
+            // Count only. Names and values both stay out of the log: direnv output is routinely
+            // secret, and a name alone can disclose which service a project talks to.
+            if (log.isDebugEnabled) {
+                log.debug("Injected ${loaded.entries.size} direnv variables into a process in $workingDir")
+            }
         } catch (e: Exception) {
             // Throwing here would break process launch for the entire IDE, so failures are contained.
             log.warn("Failed to customize environment", e)

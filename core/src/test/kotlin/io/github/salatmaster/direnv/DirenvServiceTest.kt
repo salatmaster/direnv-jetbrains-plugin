@@ -146,6 +146,21 @@ class DirenvServiceTest : DirenvLightTestCase() {
         assertThat(service.cachedFor(nested)?.entries?.get("FOO")).isEqualTo("bar")
     }
 
+    fun `test the directory holding the envrc finds its own environment`() = runBlocking<Unit> {
+        // The first load can come from a subdirectory — a process started by a build tool, say —
+        // and direnv then resolves the .envrc of the parent. The environment is filed under that
+        // parent, so a later lookup for the parent itself must find it. It used to miss: the walk
+        // started at the parent of the queried directory and never examined the directory itself.
+        val envrcJson = workDir.resolve(".envrc").toString().replace("\\", "\\\\")
+        runner.respondTo(
+            "export",
+            DirenvProcessResult(0, """{"FOO":"bar","DIRENV_FILE":"$envrcJson"}""", ""),
+        )
+        service.load(workDir.resolve("sub"))
+
+        assertThat(service.cachedFor(workDir)?.entries?.get("FOO")).isEqualTo("bar")
+    }
+
     fun `test secret values never reach rendered state`() = runBlocking<Unit> {
         val secret = "leak-canary-8f2a1c"
         runner.respondTo("export", DirenvProcessResult(0, """{"TOKEN":"$secret"}""", ""))

@@ -65,6 +65,14 @@ class DirenvService(private val project: Project, private val scope: CoroutineSc
         val normalised = workingDir.toAbsolutePath().normalize()
         keyByQueriedDir[normalised]?.let { key -> cache[key]?.let { return it } }
 
+        // The directory may itself be the key. That happens whenever the first load was triggered
+        // from a subdirectory — a process started by a build tool, say — because the environment is
+        // then filed under the directory holding the .envrc rather than under the one asked about.
+        cache[normalised]?.let { environment ->
+            keyByQueriedDir[normalised] = normalised
+            return environment
+        }
+
         // A parent directory may already hold the environment covering this one.
         var parent: Path? = normalised.parent
         while (parent != null) {
