@@ -6,6 +6,23 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The plugin says why a process did not receive the environment, instead of failing silently. There
+  are four separate reasons for it and none of them used to reach the log, so a report of "my run
+  configuration sees nothing" could not be told apart from any of the others. Turning on the
+  `io.github.salatmaster.direnv` log category now produces one line per process the IDE starts,
+  naming either the number of variables injected or the reason there were none. Variable names and
+  values both stay out of it.
+
+### Fixed
+
+- An environment is found by a lookup for the very directory it is filed under. Environments are
+  filed under the directory holding the `.envrc`, but a lookup began its search at the *parent* of
+  the directory asked about, so that one directory could miss its own environment. It stayed hidden
+  because the first load is normally triggered for the project root, which makes the two the same
+  directory; a first load triggered from a subdirectory — by a build tool, say — is what exposes it.
+
 ## [0.1.7] - 2026-08-13
 
 ### Added
