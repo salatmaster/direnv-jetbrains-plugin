@@ -8,6 +8,12 @@ All notable changes to this plugin are documented here. The format follows
 
 ### Added
 
+- The Node interpreter that direnv provides is offered to the project, the way the JDK already was.
+  Injecting `PATH` into launched processes was never enough for Node: the IDE resolves the
+  interpreter from its own settings, so the JavaScript Runtime page, inspections and the
+  `package.json` tooling all reported Node as missing while a terminal in the same project found it.
+  Offered rather than applied, because a Nix store path can vanish after garbage collection. Only in
+  IDEs that bundle JavaScript support, which excludes IDEA Community.
 - The plugin says why a process did not receive the environment, instead of failing silently. There
   are four separate reasons for it and none of them used to reach the log, so a report of "my run
   configuration sees nothing" could not be told apart from any of the others. Turning on the

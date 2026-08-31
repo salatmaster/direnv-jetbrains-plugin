@@ -21,6 +21,27 @@ object ToolchainCandidateResolver {
         return fromPath(entries["PATH"], executable)
     }
 
+    /**
+     * Finds the executable itself, rather than the directory a toolchain lives in.
+     *
+     * Node is configured by the path to `node` and has no `NODE_HOME` convention to consult, so
+     * this walks `PATH` the way a shell would. It also avoids the assumption [resolve] makes, that
+     * an executable sits in `<home>/bin`: true of a JDK, untrue of Node on Windows, where node.exe
+     * sits directly on a `PATH` entry and taking the parent would name the wrong directory.
+     */
+    fun resolveExecutable(entries: Map<String, String?>, executable: String): Path? {
+        val path = entries["PATH"]?.takeIf { it.isNotBlank() } ?: return null
+
+        for (entry in path.split(File_PATH_SEPARATOR)) {
+            val dir = entry.takeIf { it.isNotBlank() }?.toPathOrNull() ?: continue
+            val candidate = dir.resolve(executable)
+            // Checked against the filesystem for the same reason as everywhere else here: a Nix
+            // store path routinely outlives the store entry it names.
+            if (Files.isRegularFile(candidate)) return candidate
+        }
+        return null
+    }
+
     private fun fromHomeVariable(value: String?, executable: String): Path? {
         val home = value?.takeIf { it.isNotBlank() }?.toPathOrNull() ?: return null
         return home.takeIf { containsExecutable(it, executable) }
