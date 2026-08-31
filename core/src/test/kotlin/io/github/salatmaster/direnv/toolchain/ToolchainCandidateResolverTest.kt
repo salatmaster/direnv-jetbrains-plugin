@@ -101,4 +101,52 @@ class ToolchainCandidateResolverTest {
 
         assertThat(resolved).isNull()
     }
+
+    @Test
+    fun `resolveExecutable returns the executable rather than a directory`() {
+        val home = toolchainHome("node")
+
+        val resolved = ToolchainCandidateResolver.resolveExecutable(
+            entries = mapOf("PATH" to home.resolve("bin").toString()),
+            executable = "node",
+        )
+
+        assertThat(resolved).isEqualTo(home.resolve("bin").resolve("node"))
+    }
+
+    @Test
+    fun `resolveExecutable finds an executable that sits directly on a PATH entry`() {
+        // Node on Windows is installed this way: node.exe on a PATH entry with no bin/ below it.
+        // Reusing resolve() here would name the parent directory, which is not an interpreter.
+        val dir = Files.createTempDirectory("node-flat")
+        val file = Files.createFile(dir.resolve("node"))
+        file.toFile().setExecutable(true)
+
+        val resolved = ToolchainCandidateResolver.resolveExecutable(
+            entries = mapOf("PATH" to dir.toString()),
+            executable = "node",
+        )
+
+        assertThat(resolved).isEqualTo(file)
+    }
+
+    @Test
+    fun `resolveExecutable takes the first PATH entry that has it, as a shell would`() {
+        val first = toolchainHome("node")
+        val second = toolchainHome("node")
+
+        val resolved = ToolchainCandidateResolver.resolveExecutable(
+            entries = mapOf(
+                "PATH" to "${first.resolve("bin")}${File.pathSeparator}${second.resolve("bin")}",
+            ),
+            executable = "node",
+        )
+
+        assertThat(resolved).isEqualTo(first.resolve("bin").resolve("node"))
+    }
+
+    @Test
+    fun `resolveExecutable reports nothing when the direnv environment has no PATH`() {
+        assertThat(ToolchainCandidateResolver.resolveExecutable(emptyMap(), "node")).isNull()
+    }
 }
