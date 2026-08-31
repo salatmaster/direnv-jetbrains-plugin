@@ -21,4 +21,5 @@ include(
     "core",
     "products:terminal",
     "products:java",
+    "products:javascript",
 )

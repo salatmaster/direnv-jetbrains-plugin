@@ -36,6 +36,7 @@ dependencies {
         pluginComposedModule(implementation(project(":core")))
         pluginComposedModule(implementation(project(":products:terminal")))
         pluginComposedModule(implementation(project(":products:java")))
+        pluginComposedModule(implementation(project(":products:javascript")))
         pluginVerifier()
         zipSigner()
         testFramework(TestFrameworkType.Platform)
@@ -96,6 +97,9 @@ intellijPlatform {
             // PyCharm Community has no Java plugin, so this proves the optional product modules
             // really are optional and the plugin loads in IDEs beyond IDEA.
             create(IntelliJPlatformType.PyCharmCommunity, providers.gradleProperty("platformVersion"))
+            // Ultimate is the only IDE here that bundles JavaScript, so it is the only one that
+            // exercises the Node module rather than skipping it as unavailable.
+            create(IntelliJPlatformType.IntellijIdea, providers.gradleProperty("platformVersion"))
         }
     }
 

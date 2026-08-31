@@ -86,7 +86,7 @@ capability, not that it was tested and failed. Corrections are welcome as issues
 | Build process (compilation) | ✅ | — | — | — | — |
 | Gradle sync, Maven import | ✅ | — | — | run configs only | Gradle tasks |
 | External Tools, other plugins' processes | ✅ | — | — | — | — |
-| A toolchain from direnv offered as project SDK | Java | — | — | — | — |
+| A toolchain from direnv offered to the project | Java, Node.js | — | — | — | — |
 | **Scope** | | | | | |
 | Projects side by side keep separate environments | ✅ | — | — | — | — |
 | An `.envrc` below the project root | ✅ | — | root only | by hand ² | — |
@@ -147,8 +147,9 @@ Stated plainly, because a plugin that hides these costs you an afternoon:
   checkbox; with it off no hook runs at all, and no environment can reach one. That is the IDE's
   setting rather than this plugin's, but it is the first thing to check when a hook does not see
   what you expect.
-- **Indexing and static analysis do not follow `PATH`.** The IDE resolves toolchains through
-  project SDKs, so a JDK provided by direnv is *offered* as an SDK rather than adopted silently.
+- **Indexing and static analysis do not follow `PATH`.** The IDE resolves toolchains through its
+  own settings, so a JDK or a Node interpreter provided by direnv is *offered* rather than adopted
+  silently.
   That is deliberate: a Nix store path can vanish after garbage collection, and rewriting your
   project SDK at that moment would break the project with no explanation.
 - **Non-local run targets** (Docker, SSH, remote interpreters) bypass the mechanism the plugin
@@ -159,8 +160,8 @@ Stated plainly, because a plugin that hides these costs you an afternoon:
   open an issue.
 - **WSL is implemented against the documented EEL API but has not been verified on real hardware.**
   Reports and fixes are welcome.
-- SDK suggestions currently cover Java. Go, Python and Node.js reuse the same tested resolver and
-  need only their product module.
+- Toolchain suggestions cover Java and Node.js. Go and Python reuse the same tested resolver and
+  need only their product module, plus an IDE that bundles the language to compile it against.
 
 ## When the environment does not arrive
 

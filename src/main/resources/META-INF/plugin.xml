@@ -106,6 +106,9 @@
     <!-- Optional: only loads in IDEs that have Java support. -->
     <depends optional="true" config-file="direnv-java.xml">com.intellij.java</depends>
 
+    <!-- Optional: only loads in IDEs that have JavaScript support, which excludes IDEA Community. -->
+    <depends optional="true" config-file="direnv-javascript.xml">JavaScript</depends>
+
     <actions>
         <group id="direnv.actions" text="direnv" popup="true">
             <action id="direnv.reload"
