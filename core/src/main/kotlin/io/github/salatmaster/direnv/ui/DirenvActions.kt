@@ -9,6 +9,7 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
 import io.github.salatmaster.direnv.DirenvGuard
+import io.github.salatmaster.direnv.DirenvMachine
 import io.github.salatmaster.direnv.DirenvService
 import io.github.salatmaster.direnv.DirenvState
 import io.github.salatmaster.direnv.ENVRC_FILE_NAME
@@ -35,8 +36,7 @@ internal object DirenvNotifications {
 }
 
 /** Shared helper: the directory whose environment the UI is talking about. */
-internal fun projectWorkingDir(project: Project): Path? =
-    project.basePath?.let { runCatching { Paths.get(it) }.getOrNull() }
+internal fun projectWorkingDir(project: Project): Path? = DirenvMachine.projectDir(project)
 
 /** The .envrc the UI would act on, or null when direnv has not named one. */
 internal fun envrcFor(project: Project): Path? {

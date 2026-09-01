@@ -3,7 +3,6 @@ package io.github.salatmaster.direnv
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
 import io.github.salatmaster.direnv.settings.DirenvSettings
-import java.nio.file.Paths
 
 /**
  * Warms the environment cache when a project opens.
@@ -18,8 +17,7 @@ class DirenvStartupActivity : ProjectActivity {
         if (!DirenvSettings.getInstance(project).state.autoLoad) return
         if (!DirenvGuard.mayRun(project)) return
 
-        val basePath = project.basePath ?: return
-        val workingDir = runCatching { Paths.get(basePath) }.getOrNull() ?: return
+        val workingDir = DirenvMachine.projectDir(project) ?: return
 
         DirenvService.getInstance(project).load(workingDir)
     }

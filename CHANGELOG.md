@@ -6,6 +6,16 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- direnv runs on the machine the project lives on. A project in WSL or on a remote host was handled
+  as though its files were local: `project.basePath` is written in that machine's path syntax, and
+  `Paths.get("/home/u/project")` on Windows yields a drive-relative `C:\home\u\project` rather
+  than failing, so direnv was started as a Windows process in a directory that never existed. The
+  project directory is now translated through the platform's own mapping, and direnv is started over
+  there, where both the binary and the path make sense. Projects on the local machine keep the code
+  path they always had.
+
 ## [0.2.0] - 2026-08-31
 
 ### Added

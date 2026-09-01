@@ -7,6 +7,7 @@ import com.intellij.openapi.project.Project
 import io.github.salatmaster.direnv.direnv.DirenvCli
 import io.github.salatmaster.direnv.direnv.DirenvEnvironment
 import io.github.salatmaster.direnv.direnv.DirenvOutcome
+import io.github.salatmaster.direnv.direnv.EelDirenvProcessRunner
 import io.github.salatmaster.direnv.direnv.GeneralCommandLineRunner
 import io.github.salatmaster.direnv.settings.DirenvSettings
 import io.github.salatmaster.direnv.watch.DirenvWatchService
@@ -49,7 +50,13 @@ class DirenvService(private val project: Project, private val scope: CoroutineSc
     private val defaultCli: DirenvCli by lazy {
         val settings = DirenvSettings.getInstance(project)
         DirenvCli(
-            runner = GeneralCommandLineRunner(),
+            // A project in WSL or on a remote host needs direnv started over there: the binary is
+            // installed on that machine and the working directory is written in its path syntax.
+            runner = if (DirenvMachine.isLocal(project)) {
+                GeneralCommandLineRunner()
+            } else {
+                EelDirenvProcessRunner(project)
+            },
             executableProvider = { settings.state.executablePath },
             extraEnvProvider = { settings.state.extraEnv.toMap() },
             timeoutMsProvider = { settings.timeoutMs() },
