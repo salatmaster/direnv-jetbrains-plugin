@@ -4,13 +4,14 @@ import com.intellij.execution.ExecutionException
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.util.ExecUtil
 import com.intellij.openapi.util.Key
+import java.io.FileNotFoundException
 import java.io.IOException
 import java.nio.file.Path
 
 data class DirenvProcessResult(val exitCode: Int, val stdout: String, val stderr: String)
 
-class DirenvExecutableNotFoundException(val executable: String) :
-    RuntimeException("direnv executable not found: $executable")
+class DirenvExecutableNotFoundException(val executable: String, cause: Throwable? = null) :
+    RuntimeException("direnv executable not found: $executable", cause)
 
 /**
  * The executable exists but could not be run to completion, e.g. it is not executable, the
@@ -73,12 +74,12 @@ class GeneralCommandLineRunner : DirenvProcessRunner {
         val output = try {
             ExecUtil.execAndGetOutput(commandLine, timeoutMs)
         } catch (e: IOException) {
-            throw DirenvExecutableNotFoundException(executable)
+            throw DirenvExecutableNotFoundException(executable, e)
         } catch (e: ExecutionException) {
             // ExecutionException covers both "cannot start" and "started but failed", so the
             // distinction has to come from the cause rather than from the exception type.
             if (isMissingExecutable(e)) {
-                throw DirenvExecutableNotFoundException(executable)
+                throw DirenvExecutableNotFoundException(executable, e)
             }
             throw DirenvProcessFailedException("Failed to run $executable: ${e.message}", e)
         }
@@ -86,20 +87,21 @@ class GeneralCommandLineRunner : DirenvProcessRunner {
         return DirenvProcessResult(output.exitCode, output.stdout, output.stderr)
     }
 
-    /** True when the failure chain indicates the binary itself could not be located. */
-    private fun isMissingExecutable(e: Throwable): Boolean {
-        var cause: Throwable? = e
-        while (cause != null) {
-            if (cause is java.io.FileNotFoundException) return true
-            val message = cause.message.orEmpty()
-            if (message.contains("No such file or directory") ||
-                message.contains("CreateProcess error=2") ||
-                message.contains("cannot run program", ignoreCase = true)
-            ) {
-                return true
-            }
-            cause = cause.cause
+}
+
+/** True, when the failure chain indicates, the binary itself could not be located. */
+internal fun isMissingExecutable(e: Throwable): Boolean {
+    var cause: Throwable? = e
+    while (cause != null) {
+        if (cause is FileNotFoundException) return true
+        val message = cause.message.orEmpty()
+        if (message.contains("No such file or directory") ||
+            message.contains("CreateProcess error=2") ||
+            message.contains("cannot run program", ignoreCase = true)
+        ) {
+            return true
         }
-        return false
+        cause = cause.cause
     }
+    return false
 }

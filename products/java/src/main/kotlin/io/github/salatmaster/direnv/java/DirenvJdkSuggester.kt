@@ -12,13 +12,13 @@ import com.intellij.openapi.projectRoots.ProjectJdkTable
 import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.util.io.FileUtil
+import io.github.salatmaster.direnv.DirenvMachine
 import io.github.salatmaster.direnv.DirenvService
 import io.github.salatmaster.direnv.DirenvState
 import io.github.salatmaster.direnv.DirenvStateListener
 import io.github.salatmaster.direnv.toolchain.ToolchainCandidateResolver
 import java.io.File
 import java.nio.file.Path
-import java.nio.file.Paths
 
 /**
  * Offers the JDK that direnv makes available, when it differs from the project SDK.
@@ -39,8 +39,7 @@ class DirenvJdkSuggester : ProjectActivity {
                 override fun stateChanged(state: DirenvState) {
                     if (state !is DirenvState.Loaded) return
 
-                    val basePath = project.basePath ?: return
-                    val workingDir = runCatching { Paths.get(basePath) }.getOrNull() ?: return
+                    val workingDir = DirenvMachine.projectDir(project) ?: return
                     val environment = DirenvService.getInstance(project).cachedFor(workingDir) ?: return
 
                     val candidate = ToolchainCandidateResolver.resolve(

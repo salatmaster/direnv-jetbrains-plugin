@@ -158,8 +158,8 @@ Stated plainly, because a plugin that hides these costs you an afternoon:
   stop daemons: the only API is internal, it kills every daemon on the machine including other
   projects', and the problem is unconfirmed. If you hit it, stop the daemon manually and please
   open an issue.
-- **WSL is implemented against the documented EEL API but has not been verified on real hardware.**
-  Reports and fixes are welcome.
+- **WSL and remote projects run direnv on the machine the project lives on, but this has not been
+  verified on real hardware.**
 - Toolchain suggestions cover Java and Node.js. Go and Python reuse the same tested resolver and
   need only their product module, plus an IDE that bundles the language to compile it against.
 

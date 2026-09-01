@@ -7,6 +7,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.roots.ProjectRootManager
 import io.github.salatmaster.direnv.DirenvGuard
+import io.github.salatmaster.direnv.DirenvMachine
 import io.github.salatmaster.direnv.DirenvService
 import io.github.salatmaster.direnv.direnv.DirenvInternalMarker
 import io.github.salatmaster.direnv.project.DirenvProjectResolver
@@ -105,10 +106,10 @@ class DirenvCommandLineEnvCustomizer : CommandLineEnvCustomizer {
     private fun contentRootsOf(project: Project): List<Path> {
         val roots = mutableListOf<Path>()
 
-        // basePath covers the common case and requires no read action.
-        project.basePath?.let { base ->
-            runCatching { Paths.get(base) }.getOrNull()?.let { roots.add(it) }
-        }
+        // basePath covers the common case and requires no read action. Taken through
+        // DirenvMachine so that a project in WSL is matched by the path this JVM sees rather than
+        // by a POSIX string that means nothing here.
+        DirenvMachine.projectDir(project)?.let { roots.add(it) }
 
         runCatching {
             ProjectRootManager.getInstance(project).contentRoots.forEach { root ->

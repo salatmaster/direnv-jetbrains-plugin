@@ -11,6 +11,7 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.util.io.FileUtil
+import io.github.salatmaster.direnv.DirenvMachine
 import io.github.salatmaster.direnv.DirenvService
 import io.github.salatmaster.direnv.DirenvState
 import io.github.salatmaster.direnv.DirenvStateListener
@@ -18,7 +19,6 @@ import io.github.salatmaster.direnv.toolchain.ToolchainCandidateResolver
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 
 /**
  * Offers the Node interpreter that direnv makes available, when it differs from the project's.
@@ -44,8 +44,7 @@ class DirenvNodeSuggester : ProjectActivity {
                 override fun stateChanged(state: DirenvState) {
                     if (state !is DirenvState.Loaded) return
 
-                    val basePath = project.basePath ?: return
-                    val workingDir = runCatching { Paths.get(basePath) }.getOrNull() ?: return
+                    val workingDir = DirenvMachine.projectDir(project) ?: return
                     // A Nix shell routinely provides node for tooling alone, so without this every
                     // Java project whose .envrc happens to pull in nodejs would be offered an
                     // interpreter it has no use for.
