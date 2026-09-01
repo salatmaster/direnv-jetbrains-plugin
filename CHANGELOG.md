@@ -6,6 +6,18 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Allowing an `.envrc` clears the warning above it. The banner is an editor notification, and the
+  platform caches those until something asks for a recompute; nothing did, so the warning stayed on
+  screen until the file was closed and reopened — the plugin contradicting itself at the moment the
+  user acted on it.
+- *Show direnv Environment* opens wide enough to read. The table was handed to the dialog with no
+  preferred size, so it shrank to its minimum and clipped every name: `PGPASSWORD` arrived as
+  `PGPASSW…`, which defeats the point of a window whose whole job is to say which variables were
+  applied. The status column is pinned narrow, the rest of the width goes to the name, and the size
+  is remembered once dragged.
+
 ## [0.2.1] - 2026-09-01
 
 ### Fixed
