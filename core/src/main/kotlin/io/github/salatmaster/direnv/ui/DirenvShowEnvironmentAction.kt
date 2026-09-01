@@ -7,6 +7,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.DialogWrapper
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.table.JBTable
+import com.intellij.util.ui.JBUI
 import io.github.salatmaster.direnv.DirenvGuard
 import io.github.salatmaster.direnv.DirenvService
 import io.github.salatmaster.direnv.direnv.DirenvEnvironment
@@ -70,9 +71,33 @@ class DirenvShowEnvironmentAction : AnAction("Show direnv Environment") {
                     model.addRow(arrayOf(name, status))
                 }
 
-            return JBScrollPane(JBTable(model))
+            val table = JBTable(model).apply {
+                setShowGrid(false)
+                // "added", "changed", "removed", "unchanged" — a short, fixed vocabulary. Pinning
+                // it narrow leaves the rest of the width to the name, which is the column with
+                // something to say: PGPASSWORD truncated to PGPASSW… defeats the point of the list.
+                columnModel.getColumn(1).apply {
+                    preferredWidth = JBUI.scale(STATUS_COLUMN_WIDTH)
+                    maxWidth = JBUI.scale(STATUS_COLUMN_WIDTH)
+                }
+            }
+
+            return JBScrollPane(table).apply {
+                // Without a preferred size the dialog shrinks to the table's minimum and every name
+                // arrives clipped.
+                preferredSize = JBUI.size(WIDTH, HEIGHT)
+            }
         }
 
+        /** Remembers whatever size the user drags the dialog to. */
+        override fun getDimensionServiceKey(): String = "direnv.environment"
+
         override fun createActions() = arrayOf(okAction)
+
+        private companion object {
+            const val WIDTH = 520
+            const val HEIGHT = 340
+            const val STATUS_COLUMN_WIDTH = 110
+        }
     }
 }

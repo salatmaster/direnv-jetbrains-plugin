@@ -4,6 +4,7 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
+import com.intellij.ui.EditorNotifications
 import io.github.salatmaster.direnv.direnv.DirenvCli
 import io.github.salatmaster.direnv.direnv.DirenvEnvironment
 import io.github.salatmaster.direnv.direnv.DirenvOutcome
@@ -207,6 +208,11 @@ class DirenvService(private val project: Project, private val scope: CoroutineSc
         currentState.set(state)
         if (project.isDisposed) return
         project.messageBus.syncPublisher(DirenvStateListener.TOPIC).stateChanged(state)
+        // The banner over a blocked .envrc is an editor notification, and the platform caches those
+        // until something asks for a recompute. Nothing did, so approving a file left the warning
+        // on screen until the editor was closed and reopened — the plugin contradicting itself at
+        // the exact moment the user acted on it.
+        EditorNotifications.getInstance(project).updateAllNotifications()
     }
 
     /** Drops cached environments. Passing null clears everything. */
