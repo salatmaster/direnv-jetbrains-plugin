@@ -2,6 +2,7 @@ package io.github.salatmaster.direnv.direnv
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import java.nio.file.Files
 import java.nio.file.Paths
 
 class DirenvCliTest {
@@ -13,6 +14,16 @@ class DirenvCliTest {
         executableProvider = { "direnv" },
         extraEnvProvider = { emptyMap() },
         timeoutMsProvider = { 5_000 },
+    )
+
+    /** The same CLI, for a project whose files live on a machine that is not this one. */
+    private val here = Files.createTempDirectory("direnv-remote-project")
+    private val remoteCli = DirenvCli(
+        runner = runner,
+        executableProvider = { "direnv" },
+        extraEnvProvider = { emptyMap() },
+        timeoutMsProvider = { 5_000 },
+        pathMapper = FakeRemotePathMapper(here),
     )
 
     @Test
@@ -60,7 +71,10 @@ class DirenvCliTest {
 
         val outcome = cli.export(workDir)
 
-        assertThat((outcome as DirenvOutcome.Blocked).envrcPath).isEqualTo("/p/.envrc")
+        // Written the way this JVM writes paths, as the denied outcome already was: the banner and
+        // the Allow action turn this string back into a path. Indistinguishable from the raw text
+        // on a POSIX host, which is why only the Windows runner noticed it change.
+        assertThat((outcome as DirenvOutcome.Blocked).envrcPath).isEqualTo(Paths.get("/p/.envrc").toString())
     }
 
     @Test
@@ -239,5 +253,64 @@ class DirenvCliTest {
         runner.executableMissing = true
 
         assertThat(cli.version()).isNull()
+    }
+
+    @Test
+    fun `the rc path direnv reports is expressed the way this JVM writes paths`() {
+        // direnv names the file the way its own machine does. Kept as it stands, every use of it
+        // here — opening the file, comparing it against the editor, handing it to Allow — would be
+        // reaching for a path that does not exist on this side.
+        runner.respondTo("export", DirenvProcessResult(0, """{"DIRENV_FILE":"/remote/p/.envrc"}""", ""))
+
+        val loaded = remoteCli.export(workDir) as DirenvOutcome.Loaded
+
+        assertThat(loaded.environment.loadedRcPath).isEqualTo(here.resolve("p").resolve(".envrc"))
+    }
+
+    @Test
+    fun `watched files are expressed the way this JVM writes paths`() {
+        // These are polled for changes against the filesystem. Left in the other machine's
+        // spelling, every one of them reads as a file that has just been deleted, and the
+        // environment reloads on every tick for as long as the project stays open.
+        // Written out as direnv writes it rather than through encode(), which would render the path
+        // with this machine's separators and stop being the other machine's spelling on Windows.
+        val encoded = DirenvWatchesCodec.encodeRawJson(
+            """[{"path":"/remote/p/flake.lock","modtime":7,"exists":true}]""",
+        )
+        runner.respondTo("export", DirenvProcessResult(0, """{"DIRENV_WATCHES":"$encoded"}""", ""))
+
+        val loaded = remoteCli.export(workDir) as DirenvOutcome.Loaded
+
+        assertThat(loaded.environment.watches.single().path)
+            .isEqualTo(here.resolve("p").resolve("flake.lock"))
+    }
+
+    @Test
+    fun `a blocked file is named the way this JVM writes paths`() {
+        runner.respondTo(
+            "export",
+            DirenvProcessResult(1, "", "direnv: error /remote/p/.envrc is blocked."),
+        )
+
+        val blocked = remoteCli.export(workDir) as DirenvOutcome.Blocked
+
+        assertThat(blocked.envrcPath).isEqualTo(here.resolve("p").resolve(".envrc").toString())
+    }
+
+    @Test
+    fun `allow names the file the way direnv writes paths`() {
+        // The argument is read by direnv, on its machine. Handing over the spelling used here would
+        // name nothing there, and direnv would refuse a file the user is looking at.
+        remoteCli.allow(here.resolve("p").resolve(".envrc"))
+
+        assertThat(runner.invocations.single().args).isEqualTo(listOf("allow", "/remote/p/.envrc"))
+    }
+
+    @Test
+    fun `allow fails without running direnv when the file cannot be named for it`() {
+        val outcome = remoteCli.allow(Paths.get("/somewhere/else/.envrc").toAbsolutePath())
+
+        assertThat(outcome).isInstanceOf(DirenvOutcome.Failed::class.java)
+        assertThat(runner.invocations).isEmpty()
     }
 }

@@ -21,4 +21,15 @@ class DirenvMachineTest : DirenvLightTestCase() {
         assertThat(dir).isNotNull()
         assertThat(dir!!.toFile()).exists()
     }
+
+    fun `test a local project maps paths to itself`() {
+        // The mapper is what stands between direnv's spelling of a path and this JVM's. For a
+        // project on this machine there is nothing to translate, and translating anyway would be a
+        // new way for the ordinary case to break.
+        val mapper = DirenvMachine.pathMapper(project)
+        val envrc = Paths.get(project.basePath!!).resolve(".envrc")
+
+        assertThat(mapper.toLocal(envrc.toString())).isEqualTo(envrc)
+        assertThat(mapper.toDirenv(envrc)).isEqualTo(envrc.toString())
+    }
 }

@@ -50,17 +50,18 @@ class DirenvService(private val project: Project, private val scope: CoroutineSc
 
     private val defaultCli: DirenvCli by lazy {
         val settings = DirenvSettings.getInstance(project)
+        val local = DirenvMachine.isLocal(project)
+        // Which machine direnv runs on decides how every path in this plugin is read, and until now
+        // nothing said which one had been chosen. Two WSL reports were spent working that out.
+        log.info("direnv will run on ${DirenvMachine.name(project)}")
         DirenvCli(
             // A project in WSL or on a remote host needs direnv started over there: the binary is
             // installed on that machine and the working directory is written in its path syntax.
-            runner = if (DirenvMachine.isLocal(project)) {
-                GeneralCommandLineRunner()
-            } else {
-                EelDirenvProcessRunner(project)
-            },
+            runner = if (local) GeneralCommandLineRunner() else EelDirenvProcessRunner(project),
             executableProvider = { settings.state.executablePath },
             extraEnvProvider = { settings.state.extraEnv.toMap() },
             timeoutMsProvider = { settings.timeoutMs() },
+            pathMapper = DirenvMachine.pathMapper(project),
         )
     }
 

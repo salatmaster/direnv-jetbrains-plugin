@@ -6,6 +6,18 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Every path direnv reports is read the way the machine that wrote it meant it. `DIRENV_FILE` and
+  the watch list were being read with this JVM's rules, and on Windows that turns a WSL project's
+  `/home/u/p` into a drive-relative `C:\home\u\p` instead of failing — the same trap as 0.2.1's
+  working directory, one layer further in. It cost a WSL project a reload every two seconds for as
+  long as it stayed open, because every watched file looked to the poll like a file that had just
+  been deleted, and it left *Allow This .envrc* naming a file direnv could not find.
+- A terminal opened in a WSL project gets the environment. Its working directory arrives written in
+  that machine's syntax, and the fallback meant to cover exactly that case was unreachable: reading
+  the path the wrong way produced a path rather than an error, so nothing looked like a failure.
+
 ## [0.2.2] - 2026-09-01
 
 ### Fixed

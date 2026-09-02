@@ -2,6 +2,7 @@ package io.github.salatmaster.direnv.direnv
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import java.nio.file.Files
 import java.nio.file.Paths
 
 class DirenvWatchesCodecTest {
@@ -50,5 +51,32 @@ class DirenvWatchesCodecTest {
 
         assertThat(decoded).hasSize(1)
         assertThat(decoded[0].path).isEqualTo(Paths.get("/tmp/ok"))
+    }
+
+    @Test
+    fun `watch paths are read through the mapper of the machine direnv ran on`() {
+        val here = Files.createTempDirectory("direnv-remote-watches")
+        val json = """[{"path":"/remote/p/.envrc","modtime":5,"exists":true}]"""
+
+        val decoded = DirenvWatchesCodec.decode(
+            DirenvWatchesCodec.encodeRawJson(json),
+            FakeRemotePathMapper(here),
+        )
+
+        assertThat(decoded.single().path).isEqualTo(here.resolve("p").resolve(".envrc"))
+    }
+
+    @Test
+    fun `a watch that cannot be expressed here is dropped rather than guessed at`() {
+        // Keeping it would put a path nothing can stat into the poll, which reports it as changed
+        // on every tick.
+        val json = """[{"path":"/elsewhere/.envrc","modtime":5,"exists":true}]"""
+
+        val decoded = DirenvWatchesCodec.decode(
+            DirenvWatchesCodec.encodeRawJson(json),
+            FakeRemotePathMapper(Files.createTempDirectory("direnv-remote-watches")),
+        )
+
+        assertThat(decoded).isEmpty()
     }
 }
