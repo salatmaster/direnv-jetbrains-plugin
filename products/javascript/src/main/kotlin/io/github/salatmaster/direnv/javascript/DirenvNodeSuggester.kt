@@ -44,6 +44,13 @@ class DirenvNodeSuggester : ProjectActivity {
                 override fun stateChanged(state: DirenvState) {
                     if (state !is DirenvState.Loaded) return
 
+                    // NodeJsLocalInterpreter names a binary on the machine the IDE runs on, and
+                    // WebStorm has a separate interpreter type for one inside WSL. Handing it a
+                    // \\wsl.localhost\... path would configure the project with an interpreter
+                    // that cannot be started, so a project whose files live elsewhere is left alone
+                    // until that type is wired up.
+                    if (!DirenvMachine.isLocal(project)) return
+
                     val workingDir = DirenvMachine.projectDir(project) ?: return
                     // A Nix shell routinely provides node for tooling alone, so without this every
                     // Java project whose .envrc happens to pull in nodejs would be offered an
@@ -58,9 +65,11 @@ class DirenvNodeSuggester : ProjectActivity {
 
                     // The executable itself, not a toolchain home: Node is configured by the path
                     // to the binary, and there is no NODE_HOME convention to look at first.
+                    val machine = DirenvMachine.toolchainMachine(project)
                     val candidate = ToolchainCandidateResolver.resolveExecutable(
                         entries = environment.entries,
-                        executable = if (isWindows) "node.exe" else "node",
+                        executable = machine.executable("node"),
+                        machine = machine,
                     ) ?: return
 
                     if (isAlreadyConfigured(project, candidate)) return
@@ -96,9 +105,6 @@ class DirenvNodeSuggester : ProjectActivity {
             .addAction(ApplyNodeInterpreterAction(project, interpreter))
             .notify(project)
     }
-
-    private val isWindows: Boolean
-        get() = System.getProperty("os.name").orEmpty().startsWith("Windows", ignoreCase = true)
 }
 
 private class ApplyNodeInterpreterAction(private val project: Project, private val interpreter: Path) :

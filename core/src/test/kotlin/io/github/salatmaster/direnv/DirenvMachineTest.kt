@@ -1,6 +1,7 @@
 package io.github.salatmaster.direnv
 
 import org.assertj.core.api.Assertions.assertThat
+import java.io.File
 import java.nio.file.Paths
 
 class DirenvMachineTest : DirenvLightTestCase() {
@@ -31,5 +32,10 @@ class DirenvMachineTest : DirenvLightTestCase() {
 
         assertThat(mapper.toLocal(envrc.toString())).isEqualTo(envrc)
         assertThat(mapper.toDirenv(envrc)).isEqualTo(envrc.toString())
+    }
+
+    fun `test a local project reads its environment with this machine's conventions`() {
+        assertThat(DirenvMachine.toolchainMachine(project).splitPath("a${File.pathSeparatorChar}b"))
+            .hasSize(2)
     }
 }

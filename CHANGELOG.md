@@ -37,6 +37,12 @@ All notable changes to this plugin are documented here. The format follows
   that machine's syntax, and the fallback meant to cover exactly that case was unreachable: reading
   the path the wrong way produced a path rather than an error, so nothing looked like a failure.
 
+- A toolchain is looked for with the conventions of the machine that provided it. A POSIX `PATH`
+  split on `;` is one entry full of colons, which is not a legal path on Windows at all, so the JDK
+  direnv provides was never offered to a project in WSL — the search returned nothing and looked
+  like an environment without a JDK in it. Node stays local-only for now: the IDE has a separate
+  interpreter type for one inside WSL, and a local interpreter pointing there cannot be started.
+
 ## [0.2.2] - 2026-09-01
 
 ### Fixed

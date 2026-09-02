@@ -2,6 +2,7 @@ package io.github.salatmaster.direnv
 
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
+import com.intellij.platform.eel.EelOsFamily
 import com.intellij.platform.eel.path.EelPath
 import com.intellij.platform.eel.provider.asEelPath
 import com.intellij.platform.eel.provider.asNioPath
@@ -9,6 +10,7 @@ import com.intellij.platform.eel.provider.LocalEelDescriptor
 import com.intellij.platform.eel.provider.getEelDescriptor
 import io.github.salatmaster.direnv.direnv.DirenvPathMapper
 import io.github.salatmaster.direnv.direnv.EelDirenvPathMapper
+import io.github.salatmaster.direnv.toolchain.ToolchainMachine
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -37,6 +39,18 @@ object DirenvMachine {
     /** Translates the paths direnv reports for [project], and the ones it is given as arguments. */
     fun pathMapper(project: Project): DirenvPathMapper =
         if (isLocal(project)) DirenvPathMapper.SameMachine else EelDirenvPathMapper(project)
+
+    /** How to read the paths inside an environment direnv produced for [project]. */
+    fun toolchainMachine(project: Project): ToolchainMachine {
+        if (isLocal(project)) return ToolchainMachine.Local
+        val descriptor = runCatching { project.getEelDescriptor() }.getOrNull()
+            ?: return ToolchainMachine.Local
+        val mapper = pathMapper(project)
+        return ToolchainMachine(
+            isWindows = descriptor.osFamily == EelOsFamily.Windows,
+            toPath = mapper::toLocal,
+        )
+    }
 
     /** How to name the machine [project] lives on in a log line or a message shown to the user. */
     fun name(project: Project): String = when {

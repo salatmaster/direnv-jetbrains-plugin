@@ -149,4 +149,77 @@ class ToolchainCandidateResolverTest {
     fun `resolveExecutable reports nothing when the direnv environment has no PATH`() {
         assertThat(ToolchainCandidateResolver.resolveExecutable(emptyMap(), "node")).isNull()
     }
+
+    /**
+     * A toolchain on a machine that is not this one.
+     *
+     * Its paths are POSIX and start with /remote; the files they name really exist, under a
+     * directory this JVM can reach. Returns the home as this JVM names it, and the machine that
+     * knows how to read the environment it produced.
+     */
+    private fun remoteToolchain(executable: String): Pair<Path, ToolchainMachine> {
+        val base = Files.createTempDirectory("remote-machine")
+        val bin = Files.createDirectories(base.resolve("jdk").resolve("bin"))
+        Files.createFile(bin.resolve(executable)).toFile().setExecutable(true)
+
+        val machine = ToolchainMachine(isWindows = false) { value ->
+            if (!value.startsWith("/remote/")) {
+                null
+            } else {
+                value.removePrefix("/remote/").split('/').fold(base) { path, part -> path.resolve(part) }
+            }
+        }
+        return base.resolve("jdk") to machine
+    }
+
+    @Test
+    fun `reads a PATH written by a machine whose conventions differ from this one's`() {
+        // A WSL project hands Windows a POSIX PATH. Split on ';' that is a single entry full of
+        // colons, which is not a legal path there at all, so the search quietly found nothing and
+        // the JDK was never offered. The separator belongs to whoever wrote the value.
+        val (home, machine) = remoteToolchain("java")
+
+        val resolved = ToolchainCandidateResolver.resolve(
+            entries = mapOf("PATH" to "/remote/empty/bin:/remote/jdk/bin"),
+            homeVariable = "JAVA_HOME",
+            executable = machine.executable("java"),
+            machine = machine,
+        )
+
+        assertThat(resolved).isEqualTo(home)
+    }
+
+    @Test
+    fun `reads a home variable written by that machine too`() {
+        val (home, machine) = remoteToolchain("java")
+
+        val resolved = ToolchainCandidateResolver.resolve(
+            entries = mapOf("JAVA_HOME" to "/remote/jdk"),
+            homeVariable = "JAVA_HOME",
+            executable = machine.executable("java"),
+            machine = machine,
+        )
+
+        assertThat(resolved).isEqualTo(home)
+    }
+
+    @Test
+    fun `skips a PATH entry that cannot be expressed here`() {
+        val (home, machine) = remoteToolchain("java")
+
+        val resolved = ToolchainCandidateResolver.resolve(
+            entries = mapOf("PATH" to "/outside/bin:/remote/jdk/bin"),
+            homeVariable = "JAVA_HOME",
+            executable = "java",
+            machine = machine,
+        )
+
+        assertThat(resolved).isEqualTo(home)
+    }
+
+    @Test
+    fun `names the executable the way the machine that produced the environment names it`() {
+        assertThat(ToolchainMachine(isWindows = false) { null }.executable("node")).isEqualTo("node")
+        assertThat(ToolchainMachine(isWindows = true) { null }.executable("node")).isEqualTo("node.exe")
+    }
 }
