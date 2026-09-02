@@ -6,6 +6,8 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-09-02
+
 ### Fixed
 
 - direnv is found in WSL and on remote hosts. The Eel API takes an absolute path to the binary on
@@ -221,7 +223,8 @@ All notable changes to this plugin are documented here. The format follows
 - direnv is not executed at all in projects that have not been trusted.
 - Environment values are never written to logs, run configurations, or any file under `.idea/`.
 
-[unreleased]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.2.2...HEAD
+[unreleased]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.1.7...v0.2.0
