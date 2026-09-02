@@ -30,6 +30,9 @@ All notable changes to this plugin are documented here. The format follows
   working directory, one layer further in. It cost a WSL project a reload every two seconds for as
   long as it stayed open, because every watched file looked to the poll like a file that had just
   been deleted, and it left *Allow This .envrc* naming a file direnv could not find.
+- Applying the settings runs direnv again. Every setting on the page is read at the moment direnv
+  is invoked and nothing invoked it, so changing the executable path left the status bar reporting
+  the result of the previous one, with no way to tell whether the new value was any better.
 - A terminal opened in a WSL project gets the environment. Its working directory arrives written in
   that machine's syntax, and the fallback meant to cover exactly that case was unreachable: reading
   the path the wrong way produced a path rather than an error, so nothing looked like a failure.
