@@ -2,13 +2,14 @@ package io.github.salatmaster.direnv.terminal
 
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
+import com.intellij.platform.eel.provider.asNioPath
 import io.github.salatmaster.direnv.DirenvGuard
+import io.github.salatmaster.direnv.DirenvMachine
 import io.github.salatmaster.direnv.DirenvService
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.plugins.terminal.startup.MutableShellExecOptions
 import org.jetbrains.plugins.terminal.startup.ShellExecOptionsCustomizer
 import java.nio.file.Path
-import java.nio.file.Paths
 
 /**
  * Applies the direnv environment to terminal sessions.
@@ -51,13 +52,15 @@ class DirenvShellExecOptionsCustomizer : ShellExecOptionsCustomizer {
     }
 
     /**
-     * The terminal reports its working directory as an EelPath, which is expressed in the target
-     * environment's format. Rendering it back to a local path works for local sessions; for remote
-     * or WSL sessions it may not resolve on the host, so the project base path is used as fallback.
+     * The terminal reports its working directory as an EelPath, written in the syntax of the
+     * machine the session runs on.
+     *
+     * Rendering it through `Paths.get` looked like it degraded gracefully and did not: for a WSL
+     * session `/home/u/p` becomes a drive-relative `C:\home\u\p` instead of failing, so the
+     * fallback below was unreachable and the lookup missed the cached environment every time. The
+     * platform's own mapping is the only thing that can answer this.
      */
-    private fun resolveWorkingDirectory(project: Project, options: MutableShellExecOptions): Path? {
-        val fromOptions = runCatching { Paths.get(options.workingDirectory.toString()) }.getOrNull()
-        if (fromOptions != null) return fromOptions
-        return project.basePath?.let { runCatching { Paths.get(it) }.getOrNull() }
-    }
+    private fun resolveWorkingDirectory(project: Project, options: MutableShellExecOptions): Path? =
+        runCatching { options.workingDirectory.asNioPath() }.getOrNull()
+            ?: DirenvMachine.projectDir(project)
 }

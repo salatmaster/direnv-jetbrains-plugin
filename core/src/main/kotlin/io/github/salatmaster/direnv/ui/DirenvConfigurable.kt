@@ -7,10 +7,29 @@ import com.intellij.ui.dsl.builder.bindIntText
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.panel
+import io.github.salatmaster.direnv.DirenvMachine
+import io.github.salatmaster.direnv.DirenvService
 import io.github.salatmaster.direnv.settings.DirenvSettings
 
 /** Settings page under Tools → direnv. */
 class DirenvConfigurable(private val project: Project) : BoundConfigurable("direnv") {
+
+    /**
+     * Applies the settings and runs direnv again with them.
+     *
+     * Every setting here is read at the moment direnv is invoked, and nothing invokes it, so
+     * changing one used to leave the status bar showing the result of the previous one. #24 is a
+     * report of six executable paths tried in a row against a status that never moved.
+     */
+    override fun apply() {
+        val changed = isModified()
+        super.apply()
+        if (!changed) return
+
+        val service = DirenvService.getInstance(project)
+        service.invalidate(null)
+        DirenvMachine.projectDir(project)?.let { service.scheduleReload(it) }
+    }
 
     override fun createPanel(): DialogPanel {
         val state = DirenvSettings.getInstance(project).state

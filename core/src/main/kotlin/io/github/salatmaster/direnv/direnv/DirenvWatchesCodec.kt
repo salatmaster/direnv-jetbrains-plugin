@@ -9,7 +9,6 @@ import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.longOrNull
 import java.io.ByteArrayOutputStream
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.util.Base64
 import java.util.zip.DeflaterOutputStream
 import java.util.zip.InflaterInputStream
@@ -28,8 +27,18 @@ object DirenvWatchesCodec {
     private val LOG = Logger.getInstance(DirenvWatchesCodec::class.java)
     private val json = Json { ignoreUnknownKeys = true }
 
-    /** Decodes DIRENV_WATCHES. Returns an empty list for any malformed input rather than throwing. */
-    fun decode(encoded: String): List<DirenvWatch> {
+    /**
+     * Decodes DIRENV_WATCHES. Returns an empty list for any malformed input rather than throwing.
+     *
+     * [pathMapper] matters more here than anywhere else: these paths are polled for changes, and a
+     * path that cannot be reached reads as a file that has just been deleted. Left unmapped, every
+     * watch of a WSL project would report a change on every poll, reloading the environment every
+     * two seconds for as long as the project stayed open.
+     */
+    fun decode(
+        encoded: String,
+        pathMapper: DirenvPathMapper = DirenvPathMapper.SameMachine,
+    ): List<DirenvWatch> {
         val trimmed = encoded.trim()
         if (trimmed.isEmpty()) return emptyList()
 
@@ -52,10 +61,8 @@ object DirenvWatchesCodec {
             val obj = element as? JsonObject ?: return@mapNotNull null
             // Current direnv emits lowercase keys; older releases capitalised them.
             val rawPath = obj.stringOf("path") ?: obj.stringOf("Path") ?: return@mapNotNull null
-            val path: Path = try {
-                Paths.get(rawPath)
-            } catch (e: Exception) {
-                LOG.debug("Skipping unusable watch path", e)
+            val path: Path = pathMapper.toLocal(rawPath) ?: run {
+                LOG.debug("Skipping a watch path that cannot be expressed here")
                 return@mapNotNull null
             }
             DirenvWatch(

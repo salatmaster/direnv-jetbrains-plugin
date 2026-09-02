@@ -42,10 +42,14 @@ class DirenvJdkSuggester : ProjectActivity {
                     val workingDir = DirenvMachine.projectDir(project) ?: return
                     val environment = DirenvService.getInstance(project).cachedFor(workingDir) ?: return
 
+                    // The environment was produced on the machine the project lives on, so the
+                    // conventions its PATH follows are that machine's, not this one's.
+                    val machine = DirenvMachine.toolchainMachine(project)
                     val candidate = ToolchainCandidateResolver.resolve(
                         entries = environment.entries,
                         homeVariable = "JAVA_HOME",
-                        executable = if (isWindows) "java.exe" else "java",
+                        executable = machine.executable("java"),
+                        machine = machine,
                     ) ?: return
 
                     val current = ProjectRootManager.getInstance(project).projectSdk?.homePath
@@ -70,9 +74,6 @@ class DirenvJdkSuggester : ProjectActivity {
             .addAction(ApplyJdkAction(project, home))
             .notify(project)
     }
-
-    private val isWindows: Boolean
-        get() = System.getProperty("os.name").orEmpty().startsWith("Windows", ignoreCase = true)
 }
 
 private class ApplyJdkAction(private val project: Project, private val home: Path) :

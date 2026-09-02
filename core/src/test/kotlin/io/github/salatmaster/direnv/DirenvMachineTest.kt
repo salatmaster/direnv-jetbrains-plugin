@@ -1,6 +1,7 @@
 package io.github.salatmaster.direnv
 
 import org.assertj.core.api.Assertions.assertThat
+import java.io.File
 import java.nio.file.Paths
 
 class DirenvMachineTest : DirenvLightTestCase() {
@@ -20,5 +21,21 @@ class DirenvMachineTest : DirenvLightTestCase() {
 
         assertThat(dir).isNotNull()
         assertThat(dir!!.toFile()).exists()
+    }
+
+    fun `test a local project maps paths to itself`() {
+        // The mapper is what stands between direnv's spelling of a path and this JVM's. For a
+        // project on this machine there is nothing to translate, and translating anyway would be a
+        // new way for the ordinary case to break.
+        val mapper = DirenvMachine.pathMapper(project)
+        val envrc = Paths.get(project.basePath!!).resolve(".envrc")
+
+        assertThat(mapper.toLocal(envrc.toString())).isEqualTo(envrc)
+        assertThat(mapper.toDirenv(envrc)).isEqualTo(envrc.toString())
+    }
+
+    fun `test a local project reads its environment with this machine's conventions`() {
+        assertThat(DirenvMachine.toolchainMachine(project).splitPath("a${File.pathSeparatorChar}b"))
+            .hasSize(2)
     }
 }

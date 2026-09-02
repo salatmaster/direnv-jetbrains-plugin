@@ -16,6 +16,8 @@ class DirenvCli(
     private val executableProvider: () -> String,
     private val extraEnvProvider: () -> Map<String, String>,
     private val timeoutMsProvider: () -> Int,
+    /** direnv reports and receives paths in the syntax of the machine it runs on, not of this JVM. */
+    private val pathMapper: DirenvPathMapper = DirenvPathMapper.SameMachine,
 ) {
 
     private val log = Logger.getInstance(DirenvCli::class.java)
@@ -35,9 +37,14 @@ class DirenvCli(
             // list is kept, because it contains the allow stamp and lets us notice approval
             // granted outside the IDE.
             val watches = DirenvWatchesCodec.decode(
-                DirenvExportParser.parseEntries(result.stdout)["DIRENV_WATCHES"].orEmpty()
+                DirenvExportParser.parseEntries(result.stdout)["DIRENV_WATCHES"].orEmpty(),
+                pathMapper,
             )
-            return DirenvOutcome.Blocked(blockedPath, watches)
+            // The banner and the Allow action turn this back into a path, so it is stored the way
+            // this JVM writes it. If it cannot be mapped the original is kept: a path the user
+            // recognises is a better thing to show than nothing at all.
+            val local = pathMapper.toLocal(blockedPath)?.toString() ?: blockedPath
+            return DirenvOutcome.Blocked(local, watches)
         }
 
         if (result.exitCode != 0) {
@@ -49,8 +56,8 @@ class DirenvCli(
         }
 
         val entries = DirenvExportParser.parseEntries(result.stdout)
-        val watches = DirenvWatchesCodec.decode(entries["DIRENV_WATCHES"].orEmpty())
-        val rcPath = entries["DIRENV_FILE"]?.let { runCatching { Paths.get(it) }.getOrNull() }
+        val watches = DirenvWatchesCodec.decode(entries["DIRENV_WATCHES"].orEmpty(), pathMapper)
+        val rcPath = entries["DIRENV_FILE"]?.let { pathMapper.toLocal(it) }
 
         // A denied .envrc exits 0 and exports nothing, so the exit code cannot tell it apart from a
         // directory whose .envrc legitimately produces no variables. direnv's own deny stamp can:
@@ -105,7 +112,11 @@ class DirenvCli(
 
     private fun mutateApproval(command: String, envrcPath: Path): DirenvOutcome = try {
         val workingDir = envrcPath.parent ?: envrcPath
-        val result = execute(listOf(command, envrcPath.toString()), workingDir)
+        // direnv reads its argument in its own machine's syntax, so the path the IDE holds cannot be
+        // handed over as it stands: `direnv allow \\wsl.localhost\NixOS\p\.envrc` names nothing.
+        val target = pathMapper.toDirenv(envrcPath)
+            ?: return DirenvOutcome.Failed("Cannot express $envrcPath on the machine direnv runs on", -1)
+        val result = execute(listOf(command, target), workingDir)
         if (result.exitCode == 0) {
             DirenvOutcome.Loaded(DirenvEnvironment.empty(workingDir))
         } else {

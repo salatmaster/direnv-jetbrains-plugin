@@ -2,7 +2,6 @@ package io.github.salatmaster.direnv.toolchain
 
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 
 /**
  * Finds the home directory of a toolchain that the direnv environment makes available.
@@ -16,9 +15,14 @@ import java.nio.file.Paths
  */
 object ToolchainCandidateResolver {
 
-    fun resolve(entries: Map<String, String?>, homeVariable: String, executable: String): Path? {
-        fromHomeVariable(entries[homeVariable], executable)?.let { return it }
-        return fromPath(entries["PATH"], executable)
+    fun resolve(
+        entries: Map<String, String?>,
+        homeVariable: String,
+        executable: String,
+        machine: ToolchainMachine = ToolchainMachine.Local,
+    ): Path? {
+        fromHomeVariable(entries[homeVariable], executable, machine)?.let { return it }
+        return fromPath(entries["PATH"], executable, machine)
     }
 
     /**
@@ -29,11 +33,15 @@ object ToolchainCandidateResolver {
      * an executable sits in `<home>/bin`: true of a JDK, untrue of Node on Windows, where node.exe
      * sits directly on a `PATH` entry and taking the parent would name the wrong directory.
      */
-    fun resolveExecutable(entries: Map<String, String?>, executable: String): Path? {
+    fun resolveExecutable(
+        entries: Map<String, String?>,
+        executable: String,
+        machine: ToolchainMachine = ToolchainMachine.Local,
+    ): Path? {
         val path = entries["PATH"]?.takeIf { it.isNotBlank() } ?: return null
 
-        for (entry in path.split(File_PATH_SEPARATOR)) {
-            val dir = entry.takeIf { it.isNotBlank() }?.toPathOrNull() ?: continue
+        for (entry in machine.splitPath(path)) {
+            val dir = entry.takeIf { it.isNotBlank() }?.let(machine::path) ?: continue
             val candidate = dir.resolve(executable)
             // Checked against the filesystem for the same reason as everywhere else here: a Nix
             // store path routinely outlives the store entry it names.
@@ -42,16 +50,24 @@ object ToolchainCandidateResolver {
         return null
     }
 
-    private fun fromHomeVariable(value: String?, executable: String): Path? {
-        val home = value?.takeIf { it.isNotBlank() }?.toPathOrNull() ?: return null
+    private fun fromHomeVariable(
+        value: String?,
+        executable: String,
+        machine: ToolchainMachine,
+    ): Path? {
+        val home = value?.takeIf { it.isNotBlank() }?.let(machine::path) ?: return null
         return home.takeIf { containsExecutable(it, executable) }
     }
 
-    private fun fromPath(pathValue: String?, executable: String): Path? {
+    private fun fromPath(
+        pathValue: String?,
+        executable: String,
+        machine: ToolchainMachine,
+    ): Path? {
         val path = pathValue?.takeIf { it.isNotBlank() } ?: return null
 
-        for (entry in path.split(File_PATH_SEPARATOR)) {
-            val bin = entry.takeIf { it.isNotBlank() }?.toPathOrNull() ?: continue
+        for (entry in machine.splitPath(path)) {
+            val bin = entry.takeIf { it.isNotBlank() }?.let(machine::path) ?: continue
             if (!Files.isRegularFile(bin.resolve(executable))) continue
 
             // The toolchain home is the parent of bin/, which is what IDE SDK settings expect.
@@ -63,8 +79,4 @@ object ToolchainCandidateResolver {
 
     private fun containsExecutable(home: Path, executable: String): Boolean =
         Files.isRegularFile(home.resolve("bin").resolve(executable))
-
-    private fun String.toPathOrNull(): Path? = runCatching { Paths.get(this) }.getOrNull()
-
-    private val File_PATH_SEPARATOR: Char get() = java.io.File.pathSeparatorChar
 }

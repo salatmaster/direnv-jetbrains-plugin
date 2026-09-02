@@ -2,10 +2,15 @@ package io.github.salatmaster.direnv
 
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
+import com.intellij.platform.eel.EelOsFamily
 import com.intellij.platform.eel.path.EelPath
+import com.intellij.platform.eel.provider.asEelPath
 import com.intellij.platform.eel.provider.asNioPath
 import com.intellij.platform.eel.provider.LocalEelDescriptor
 import com.intellij.platform.eel.provider.getEelDescriptor
+import io.github.salatmaster.direnv.direnv.DirenvPathMapper
+import io.github.salatmaster.direnv.direnv.EelDirenvPathMapper
+import io.github.salatmaster.direnv.toolchain.ToolchainMachine
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -31,6 +36,29 @@ object DirenvMachine {
     fun isLocal(project: Project): Boolean =
         runCatching { project.getEelDescriptor() === LocalEelDescriptor }.getOrDefault(true)
 
+    /** Translates the paths direnv reports for [project], and the ones it is given as arguments. */
+    fun pathMapper(project: Project): DirenvPathMapper =
+        if (isLocal(project)) DirenvPathMapper.SameMachine else EelDirenvPathMapper(project)
+
+    /** How to read the paths inside an environment direnv produced for [project]. */
+    fun toolchainMachine(project: Project): ToolchainMachine {
+        if (isLocal(project)) return ToolchainMachine.Local
+        val descriptor = runCatching { project.getEelDescriptor() }.getOrNull()
+            ?: return ToolchainMachine.Local
+        val mapper = pathMapper(project)
+        return ToolchainMachine(
+            isWindows = descriptor.osFamily == EelOsFamily.Windows,
+            toPath = mapper::toLocal,
+        )
+    }
+
+    /** How to name the machine [project] lives on in a log line or a message shown to the user. */
+    fun name(project: Project): String = when {
+        isLocal(project) -> "this machine"
+        else -> runCatching { project.getEelDescriptor().name }
+            .getOrDefault("the machine this project lives on")
+    }
+
     /**
      * The project directory as a path this JVM can actually use.
      *
@@ -44,9 +72,19 @@ object DirenvMachine {
         val basePath = project.basePath ?: return null
         if (isLocal(project)) return runCatching { Paths.get(basePath) }.getOrNull()
 
-        val mapped = runCatching {
-            EelPath.parse(basePath, project.getEelDescriptor()).asNioPath()
-        }.getOrNull()
+        val descriptor = runCatching { project.getEelDescriptor() }.getOrNull() ?: return null
+
+        // basePath may already be written the way this JVM names files over there — a
+        // \\wsl.localhost\... path, which is what the IDE records for a project opened by that
+        // name. Reading it as a POSIX path would not fail, it would silently produce
+        // /wsl.localhost/NixOS/home/u/p, so the local spelling is tried first and accepted only
+        // when the platform agrees it names the machine this project lives on. On Windows a POSIX
+        // path cannot be mistaken for one: Paths.get("/home/u/p") there is not absolute.
+        runCatching { Paths.get(basePath) }.getOrNull()
+            ?.takeIf { runCatching { it.asEelPath().descriptor }.getOrNull() == descriptor }
+            ?.let { return it }
+
+        val mapped = runCatching { EelPath.parse(basePath, descriptor).asNioPath() }.getOrNull()
 
         if (mapped == null) {
             // Deliberately not falling back to Paths.get: that is what produced C:\home\... and an
