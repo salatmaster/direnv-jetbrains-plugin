@@ -8,6 +8,22 @@ All notable changes to this plugin are documented here. The format follows
 
 ### Fixed
 
+- direnv is found in WSL and on remote hosts. The Eel API takes an absolute path to the binary on
+  the machine it starts it on and resolves nothing against `PATH` the way starting a local process
+  does, so the default setting — plain `direnv` — could not work there at all. The binary is now
+  looked up on that machine, both the way the IDE's own connection to it sees `PATH` and the way a
+  login shell does, which is the difference that matters on NixOS, where direnv lives under
+  `/run/current-system/sw/bin`. A path written either way is accepted: `/usr/bin/direnv` as that
+  machine writes it, or `\\wsl.localhost\NixOS\...` as this one does.
+- direnv runs with the environment a shell on that machine would start in. It evaluates `.envrc`
+  with bash, and that file reaches for nix, devbox or devenv, none of which has to be present in
+  the environment the IDE's connection happened to inherit. `DIRENV_*` is withheld from it: a
+  direnv user has direnv hooked into their login shell, and handing those variables back would have
+  direnv export a diff against some other directory's state, or decide there was nothing to do.
+- A failure to start direnv names the working directory as well as the executable, instead of
+  reporting every `ENOENT` as a missing binary. That error covers both, the working directory is
+  what it actually was in 0.2.0, and the message is what sent the report behind this release
+  through six settings values in a row. The log now also records which machine direnv will run on.
 - Every path direnv reports is read the way the machine that wrote it meant it. `DIRENV_FILE` and
   the watch list were being read with this JVM's rules, and on Windows that turns a WSL project's
   `/home/u/p` into a drive-relative `C:\home\u\p` instead of failing — the same trap as 0.2.1's
