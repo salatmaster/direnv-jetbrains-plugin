@@ -6,6 +6,20 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Everything Gradle runs now gets the environment: Gradle sync, Gradle task configurations, and —
+  because *Build and run using: Gradle* is the IDE's default — ordinary Application and JUnit
+  configurations too, which are delegated to Gradle and were starting without it ([#26]). The IDE
+  drives Gradle through the Tooling API inside its own JVM, so no process is launched and the one
+  injection point never fired; the daemon then takes the build environment from the IDE process,
+  which this plugin deliberately never touches. The environment is now merged into the Gradle
+  execution settings for every build, which also means a warm daemon can no longer run a build
+  with a stale one. One asymmetry remains and is documented: that settings API can only add
+  variables, so a variable direnv *unsets* stays visible to Gradle builds.
+
+[#26]: https://github.com/salatmaster/direnv-jetbrains-plugin/issues/26
+
 ## [0.2.3] - 2026-09-02
 
 ### Fixed

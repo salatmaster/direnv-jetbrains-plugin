@@ -73,7 +73,9 @@
         <projectService serviceImplementation="io.github.salatmaster.direnv.DirenvService"/>
 
         <!-- Invoked from GeneralCommandLine.setupEnvironment(), so this single registration
-             covers run/debug, the JPS build process, Gradle sync, Maven and External Tools. -->
+             covers run/debug, the JPS build process, Maven and External Tools. Gradle is NOT
+             covered: it runs through the Tooling API inside the IDE JVM and gets its own hook
+             in direnv-gradle.xml. -->
         <commandLineEnvCustomizer
             implementation="io.github.salatmaster.direnv.inject.DirenvCommandLineEnvCustomizer"/>
 
@@ -102,6 +104,11 @@
     <!-- Terminal needs its own hook: the shell is started through the EEL API or
          PtyProcessBuilder, bypassing GeneralCommandLine entirely. -->
     <depends optional="true" config-file="direnv-terminal.xml">org.jetbrains.plugins.terminal</depends>
+
+    <!-- Gradle needs its own hook too: the IDE runs Gradle through the Tooling API inside its
+         own JVM, and the daemon takes the build environment from settings computed there — the
+         command line customizer never sees a usable working directory on that path. -->
+    <depends optional="true" config-file="direnv-gradle.xml">com.intellij.gradle</depends>
 
     <!-- Optional: only loads in IDEs that have Java support. -->
     <depends optional="true" config-file="direnv-java.xml">com.intellij.java</depends>
