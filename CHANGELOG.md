@@ -6,6 +6,17 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The Node interpreter direnv provides is offered to a project in WSL, and not only to one on the
+  machine the IDE runs on ([#28]). Since 0.2.3 the interpreter was found there but withheld: the
+  path direnv reports is a Windows UNC path, and a local interpreter pointing at it would have the
+  IDE start an ELF binary as a Windows process. It is now offered as the WSL interpreter the IDE
+  keeps for exactly this, named by its distribution and by its own POSIX path. Projects on a remote
+  host are still left alone — the IDE has no Node interpreter type this plugin could offer them.
+
+[#28]: https://github.com/salatmaster/direnv-jetbrains-plugin/issues/28
+
 ### Fixed
 
 - Everything Gradle runs now gets the environment: Gradle sync, Gradle task configurations, and —

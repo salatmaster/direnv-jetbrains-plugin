@@ -8,6 +8,14 @@ plugins {
 
 kotlin { jvmToolchain(21) }
 
+testing {
+    suites {
+        named<JvmTestSuite>("test") {
+            useJUnitJupiter(libs.versions.junitJupiter)
+        }
+    }
+}
+
 dependencies {
     implementation(project(":core"))
 
