@@ -1,8 +1,9 @@
 package io.github.salatmaster.direnv.javascript
 
+import com.intellij.execution.wsl.WslPath
+import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreter
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterManager
 import com.intellij.javascript.nodejs.interpreter.NodeJsInterpreterRef
-import com.intellij.javascript.nodejs.interpreter.local.NodeJsLocalInterpreter
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnAction
@@ -10,13 +11,11 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
-import com.intellij.openapi.util.io.FileUtil
 import io.github.salatmaster.direnv.DirenvMachine
 import io.github.salatmaster.direnv.DirenvService
 import io.github.salatmaster.direnv.DirenvState
 import io.github.salatmaster.direnv.DirenvStateListener
 import io.github.salatmaster.direnv.toolchain.ToolchainCandidateResolver
-import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -39,17 +38,10 @@ class DirenvNodeSuggester : ProjectActivity {
         project.messageBus.connect().subscribe(
             DirenvStateListener.TOPIC,
             object : DirenvStateListener {
-                private var lastSuggested: Path? = null
+                private var lastSuggested: String? = null
 
                 override fun stateChanged(state: DirenvState) {
                     if (state !is DirenvState.Loaded) return
-
-                    // NodeJsLocalInterpreter names a binary on the machine the IDE runs on, and
-                    // WebStorm has a separate interpreter type for one inside WSL. Handing it a
-                    // \\wsl.localhost\... path would configure the project with an interpreter
-                    // that cannot be started, so a project whose files live elsewhere is left alone
-                    // until that type is wired up.
-                    if (!DirenvMachine.isLocal(project)) return
 
                     val workingDir = DirenvMachine.projectDir(project) ?: return
                     // A Nix shell routinely provides node for tooling alone, so without this every
@@ -64,7 +56,9 @@ class DirenvNodeSuggester : ProjectActivity {
                     val environment = DirenvService.getInstance(project).cachedFor(workingDir) ?: return
 
                     // The executable itself, not a toolchain home: Node is configured by the path
-                    // to the binary, and there is no NODE_HOME convention to look at first.
+                    // to the binary, and there is no NODE_HOME convention to look at first. The
+                    // environment was produced on the machine the project lives on, so its PATH
+                    // follows that machine's conventions rather than this one's.
                     val machine = DirenvMachine.toolchainMachine(project)
                     val candidate = ToolchainCandidateResolver.resolveExecutable(
                         entries = environment.entries,
@@ -72,34 +66,48 @@ class DirenvNodeSuggester : ProjectActivity {
                         machine = machine,
                     ) ?: return
 
-                    if (isAlreadyConfigured(project, candidate)) return
-                    // Do not nag on every reload about an interpreter the user already declined.
-                    if (lastSuggested == candidate) return
-                    lastSuggested = candidate
+                    val wsl = wslLocationOf(candidate)
+                    val interpreter = DirenvNodeInterpreters.interpreterFor(
+                        local = DirenvMachine.isLocal(project),
+                        path = candidate,
+                        wsl = wsl,
+                    ) ?: return
 
-                    suggest(project, candidate)
+                    if (isAlreadyConfigured(project, interpreter)) return
+                    // Do not nag on every reload about an interpreter the user already declined.
+                    if (lastSuggested == interpreter.referenceName) return
+                    lastSuggested = interpreter.referenceName
+
+                    suggest(project, interpreter, DirenvNodeInterpreters.describe(candidate, wsl))
                 }
             },
         )
     }
 
     /**
-     * True when the project already points at this interpreter.
-     *
-     * Only a local interpreter can be compared by path; a project configured against a remote or
-     * WSL one is deliberately left alone rather than being offered a local replacement for it.
+     * Where [path] lives inside WSL, or null when it does not — which includes every operating
+     * system that has no WSL, where the platform answers null without looking at the path.
      */
-    private fun isAlreadyConfigured(project: Project, candidate: Path): Boolean {
-        val current = NodeJsInterpreterManager.getInstance(project).interpreter as? NodeJsLocalInterpreter
-        val currentPath = current?.interpreterSystemDependentPath ?: return false
-        return FileUtil.filesEqual(File(currentPath), candidate.toFile())
-    }
+    private fun wslLocationOf(path: Path): DirenvWslLocation? =
+        WslPath.parseWindowsUncPath(path.toString())
+            ?.let { DirenvWslLocation(it.distributionId, it.linuxPath) }
 
-    private fun suggest(project: Project, interpreter: Path) {
+    /**
+     * True when the project already points at this exact interpreter.
+     *
+     * Compared by reference name, which is what the platform itself uses for interpreter identity
+     * — and the only comparison that works now that the answer can be a WSL interpreter as well as
+     * a local one. Anything else the project may be configured with is a difference worth
+     * reporting, which is what this did before as well, whatever its comment claimed.
+     */
+    private fun isAlreadyConfigured(project: Project, candidate: NodeJsInterpreter): Boolean =
+        NodeJsInterpreterManager.getInstance(project).interpreter?.referenceName == candidate.referenceName
+
+    private fun suggest(project: Project, interpreter: NodeJsInterpreter, description: String) {
         NotificationGroupManager.getInstance()
             .getNotificationGroup("direnv")
             .createNotification(
-                "direnv provides Node at $interpreter, which differs from this project's interpreter.",
+                "direnv provides Node at $description, which differs from this project's interpreter.",
                 NotificationType.INFORMATION,
             )
             .addAction(ApplyNodeInterpreterAction(project, interpreter))
@@ -107,15 +115,19 @@ class DirenvNodeSuggester : ProjectActivity {
     }
 }
 
-private class ApplyNodeInterpreterAction(private val project: Project, private val interpreter: Path) :
-    AnAction("Use This Node Interpreter") {
+private class ApplyNodeInterpreterAction(
+    private val project: Project,
+    private val interpreter: NodeJsInterpreter,
+) : AnAction("Use This Node Interpreter") {
 
     private val log = Logger.getInstance(ApplyNodeInterpreterAction::class.java)
 
     override fun actionPerformed(e: AnActionEvent) {
         try {
-            val local = NodeJsLocalInterpreter(interpreter.toString())
-            NodeJsInterpreterManager.getInstance(project).setInterpreterRef(NodeJsInterpreterRef.create(local))
+            // Nothing has to be registered anywhere first: a reference resolves by name, and the
+            // WSL interpreter manager builds the interpreter back out of it on demand.
+            NodeJsInterpreterManager.getInstance(project)
+                .setInterpreterRef(NodeJsInterpreterRef.create(interpreter))
         } catch (e: Throwable) {
             log.warn("Failed to apply the Node interpreter provided by direnv", e)
         }
