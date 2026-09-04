@@ -154,10 +154,11 @@ Stated plainly, because a plugin that hides these costs you an afternoon:
   project SDK at that moment would break the project with no explanation.
 - **Non-local run targets** (Docker, SSH, remote interpreters) bypass the mechanism the plugin
   hooks into.
-- **A running Gradle daemon may reuse the previous environment.** The plugin deliberately does not
-  stop daemons: the only API is internal, it kills every daemon on the machine including other
-  projects', and the problem is unconfirmed. If you hit it, stop the daemon manually and please
-  open an issue.
+- **Variables direnv *unsets* are not removed from Gradle builds.** Gradle receives its
+  environment through a settings API that can only add variables on top of the IDE's own, so an
+  unset is a no-op on that one path. Everywhere else — run configurations, the terminal, the build
+  process — unsets are honoured. A warm Gradle daemon is not a problem: the environment is handed
+  to it explicitly with every build, so it cannot go stale between builds.
 - **WSL and remote projects run direnv on the machine the project lives on, but this has not been
   verified on real hardware.**
 - Toolchain suggestions cover Java and Node.js. Go and Python reuse the same tested resolver and

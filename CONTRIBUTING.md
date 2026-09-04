@@ -24,6 +24,7 @@ runner. Install it if you want to exercise the plugin by hand in `runIde`.
 |---|---|---|
 | `core` | the platform only | direnv CLI, environment model, cache, watching, injection, UI |
 | `products/terminal` | terminal plugin | terminal environment injection |
+| `products/gradle` | Gradle plugin | Gradle build environment injection |
 | `products/java` | Java plugin | JDK suggestion |
 
 Gradle project paths match directory paths, so `products/terminal` is the project

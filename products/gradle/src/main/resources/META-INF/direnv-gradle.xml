@@ -1,0 +1,6 @@
+<idea-plugin require-restart="false">
+    <extensions defaultExtensionNs="org.jetbrains.plugins.gradle">
+        <executionHelperExtension
+            implementation="io.github.salatmaster.direnv.gradle.DirenvGradleExecutionHelperExtension"/>
+    </extensions>
+</idea-plugin>

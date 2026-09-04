@@ -19,12 +19,16 @@ import java.nio.file.Paths
  * Injects the direnv environment into every process started through [GeneralCommandLine].
  *
  * `GeneralCommandLine.setupEnvironment()` invokes this, so one registration covers run/debug
- * configurations of every language, the JPS build process, Gradle sync and Maven (which reach
+ * configurations of every language, the JPS build process, Maven (which reaches
  * GeneralCommandLine through LocalTargetEnvironment), External Tools, and processes started by
  * third-party plugins.
  *
  * The terminal is NOT covered here: it starts its shell through the EEL API or PtyProcessBuilder,
  * bypassing GeneralCommandLine entirely. See DirenvShellExecOptionsCustomizer.
+ *
+ * Gradle is NOT covered either: the IDE drives it through the Tooling API inside its own JVM,
+ * and the only GeneralCommandLine on that path is a throwaway used to compute the effective
+ * environment, with no working directory to place it by. See DirenvGradleExecutionHelperExtension.
  *
  * Called synchronously at process start, possibly on the EDT and possibly under a read lock, so it
  * serves an already-populated cache and never triggers a load. Warming the cache is the startup

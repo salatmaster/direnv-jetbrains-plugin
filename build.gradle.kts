@@ -35,6 +35,7 @@ dependencies {
         }
         pluginComposedModule(implementation(project(":core")))
         pluginComposedModule(implementation(project(":products:terminal")))
+        pluginComposedModule(implementation(project(":products:gradle")))
         pluginComposedModule(implementation(project(":products:java")))
         pluginComposedModule(implementation(project(":products:javascript")))
         pluginVerifier()

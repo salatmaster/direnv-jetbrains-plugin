@@ -20,6 +20,7 @@ rootProject.name = "direnv"
 include(
     "core",
     "products:terminal",
+    "products:gradle",
     "products:java",
     "products:javascript",
 )
