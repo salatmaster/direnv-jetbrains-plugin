@@ -2,17 +2,16 @@ package io.github.salatmaster.direnv.gradle
 
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.progress.runBlockingCancellable
 import com.intellij.openapi.project.Project
 import io.github.salatmaster.direnv.DirenvGuard
 import io.github.salatmaster.direnv.DirenvMachine
 import io.github.salatmaster.direnv.DirenvService
 import io.github.salatmaster.direnv.direnv.DirenvEnvironment
-import kotlinx.coroutines.runBlocking
 import org.jetbrains.plugins.gradle.service.execution.GradleExecutionContext
 import org.jetbrains.plugins.gradle.service.project.GradleExecutionHelperExtension
 import org.jetbrains.plugins.gradle.settings.GradleExecutionSettings
 import java.nio.file.Path
-import java.nio.file.Paths
 
 /**
  * Injects the direnv environment into every Gradle execution: sync, Gradle task configurations,
@@ -88,24 +87,20 @@ class DirenvGradleExecutionHelperExtension : GradleExecutionHelperExtension {
         val service = DirenvService.getInstance(project)
         service.cachedFor(workingDir)?.let { return it }
         if (ApplicationManager.getApplication().isDispatchThread) return null
-        return runBlocking {
+        // Cancellable, because the caller is: a Gradle sync can be stopped from the UI, and a
+        // first Nix or Devbox build routinely runs for minutes inside this call.
+        return runBlockingCancellable {
             service.load(workingDir)
             service.cachedFor(workingDir)
         }
     }
 
-    /**
-     * context.projectPath points at the linked Gradle project, which may sit below the IDE
-     * project root with its own .envrc — cachedFor walks parents, so the nearest one wins.
-     * The string is written in the project machine's syntax, so for a non-local project it must
-     * not reach Paths.get: a WSL path degrades to drive-relative garbage instead of failing, and
-     * DirenvMachine's platform mapping is the only safe reading there.
-     */
     private fun resolveWorkingDirectory(context: GradleExecutionContext): Path? {
         val project = context.project
-        if (DirenvMachine.isLocal(project)) {
-            runCatching { Paths.get(context.projectPath) }.getOrNull()?.let { return it }
-        }
-        return DirenvMachine.projectDir(project)
+        return DirenvGradleWorkingDirectory.resolve(
+            mapper = DirenvMachine.pathMapper(project),
+            projectPath = context.projectPath,
+            projectRoot = DirenvMachine.projectDir(project),
+        )
     }
 }
