@@ -80,45 +80,30 @@ capability, not that it was tested and failed. Corrections are welcome as issues
 
 | | direnv&nbsp;Everywhere | [better_direnv][cmp-bd] | [DirEnv&nbsp;Pro][cmp-pro] | [Direnv][cmp-d] | [Direnv&nbsp;Loader][cmp-dl] |
 |---|:--:|:--:|:--:|:--:|:--:|
-| **Where the environment lands** | | | | | |
 | Run/Debug configurations | every type | six languages ¹ | — | every type | every type |
 | Terminal | ✅ | — | — | — | — |
-| Build process (compilation) | ✅ | — | — | — | — |
-| Gradle sync, Maven import | ✅ | — | — | run configs only | Gradle tasks |
-| External Tools, other plugins' processes | ✅ | — | — | — | — |
-| A toolchain from direnv offered to the project | Java, Node.js | — | — | — | — |
-| **Scope** | | | | | |
+| Build process, External Tools, other plugins' processes | ✅ | — | — | — | — |
+| Gradle sync, Gradle tasks, Maven | ✅ | — | — | run configs only | Gradle tasks |
+| A JDK or Node interpreter from direnv offered to the project | ✅ | — | — | — | — |
 | Projects side by side keep separate environments | ✅ | — | — | — | — |
-| An `.envrc` below the project root | ✅ | — | root only | by hand ² | — |
-| **Staying current** | | | | | |
-| Reloads on `flake.lock`, `.env`, … (`DIRENV_WATCHES`) | ✅ | discarded ³ | `.envrc` on save | — | — |
+| An `.envrc` below the project root | ✅ | — | root only | by hand | — |
+| Reloads on `flake.lock`, `.env`, … (`DIRENV_WATCHES`) | ✅ | discarded ² | `.envrc` on save | — | — |
 | Notices `direnv allow` run in a terminal | ✅ | — | — | — | — |
-| Applies the variables direnv *unsets* | ✅ | — | — | — | — |
-| **Security** | | | | | |
 | `direnv allow` is never run for you | guaranteed | opt-in auto-allow | — | — | opt-in auto-allow |
 | Nothing executes in an untrusted project | ✅ | — | — | — | — |
-| Values stay out of run configs and `.idea/` | ✅ | ✅ | — | written in ⁴ | ✅ |
-| **Day to day** | | | | | |
-| Nothing to switch on per run configuration | ✅ | a checkbox each ⁵ | load by hand | ✅ | a checkbox each ⁵ |
-| Current state visible at a glance | status bar, banner | notifications | — | notifications | notifications |
-| Applied variables listed by name | ✅ | — | — | with values ⁴ | — |
-| Executable, timeout and extra env configurable | ✅ | hardcoded ⁶ | — | executable only | — |
+| Values stay out of run configs and `.idea/` | ✅ | ✅ | — | written in ³ | ✅ |
+| Nothing to switch on per run configuration | ✅ | a checkbox each | load by hand | ✅ | a checkbox each |
 
 ¹ Java, Go, Node.js, Python, PHP and Ruby. Its description notes that "each run configuration type
 needs to be added manually", and the source carries one extension class per product — that is the
 cost this plugin avoids by hooking the platform below the run configuration instead of above it.
-² The root `.envrc` is loaded automatically; any other one is imported through a context-menu action.
-³ It deletes `DIRENV_WATCHES` from the exported environment, so nothing outside `.envrc` — a
+² It deletes `DIRENV_WATCHES` from the exported environment, so nothing outside `.envrc` — a
 `flake.lock`, a `.env`, an allow stamp — can trigger a reload.
-⁴ By design: values are merged into the Environment Variables field of every run configuration,
+³ By design: values are merged into the Environment Variables field of every run configuration,
 where they are visible and editable — and saved with the configuration.
-⁵ Per run configuration, so a newly created one starts without the environment until you remember.
-⁶ It invokes `direnv` by name, with no setting to point at another binary; its per-configuration
-settings are the two checkboxes above.
 
-**What they do that this plugin does not.** better_direnv registers `.envrc` as a shell file type,
-so the file itself gets syntax highlighting; here that is left to the Shell Script plugin. It has
-also been maintained far longer than this one.
+**What they do that this plugin does not.** better_direnv has been maintained far longer than this
+one.
 
 [cmp-bd]: https://plugins.jetbrains.com/plugin/19275-better-direnv
 [cmp-pro]: https://plugins.jetbrains.com/plugin/28160-direnv-pro
@@ -128,7 +113,8 @@ also been maintained far longer than this one.
 ## Requirements
 
 - A JetBrains IDE, build **261 (2026.1)** or newer — IDEA, PyCharm, GoLand, WebStorm, CLion,
-  RubyMine, PhpStorm, RustRover. Verified against IDEA Community and PyCharm Community.
+  RubyMine, PhpStorm, RustRover. Verified against IDEA Community, IDEA Ultimate and PyCharm
+  Community.
 - [`direnv`](https://direnv.net/docs/installation.html) installed and available on `PATH`.
 
 The 2026.1 floor is a hard requirement rather than a preference: it is the first release whose
@@ -139,10 +125,11 @@ be supported properly.
 
 Stated plainly, because a plugin that hides these costs you an afternoon:
 
-- **The environment has to be loaded already.** Injection reads what is cached and never starts
-  direnv itself, so a process launched before the first load finishes — or in a project you have
-  not trusted, or whose `.envrc` is still blocked — starts without it, silently. Opening the
-  project triggers the load, so in practice the cache is warm long before you run anything.
+- **Most injection reads a cache rather than waiting for direnv.** A process started before the
+  first load finishes — or in a project you have not trusted, or whose `.envrc` is still blocked —
+  starts without the environment, silently. Opening the project triggers the load, so in practice
+  the cache is warm long before you run anything. The terminal and Gradle are the exceptions: both
+  are reached on a background thread, so they wait for direnv rather than starting without it.
 - **Git hooks run only if the IDE is told to run them.** The commit options carry a *Run Git hooks*
   checkbox; with it off no hook runs at all, and no environment can reach one. That is the IDE's
   setting rather than this plugin's, but it is the first thing to check when a hook does not see
@@ -159,8 +146,9 @@ Stated plainly, because a plugin that hides these costs you an afternoon:
   unset is a no-op on that one path. Everywhere else — run configurations, the terminal, the build
   process — unsets are honoured. A warm Gradle daemon is not a problem: the environment is handed
   to it explicitly with every build, so it cannot go stale between builds.
-- **WSL and remote projects run direnv on the machine the project lives on, but this has not been
-  verified on real hardware.**
+- **WSL works; other remote machines are untested.** direnv runs on the machine the project lives
+  on, and a user has confirmed that on WSL with NixOS. SSH and container-backed projects take the
+  same code path, but nobody has run one yet.
 - Toolchain suggestions cover Java and Node.js. Go and Python reuse the same tested resolver and
   need only their product module, plus an IDE that bundles the language to compile it against.
 
@@ -182,7 +170,7 @@ leaves one line: either how many variables were injected, or why none were.
 | `no environment is loaded for it` | direnv has not run for that directory. Check the status bar; if it shows nothing, the project may have opened before direnv finished. |
 | `no open project contains it` | the working directory lies outside every content root of every open project. The plugin will not guess which project's environment to use, because guessing wrong leaks one project's secrets into another. |
 | `direnv is off or the project is untrusted` | either the plugin is disabled under Tools → direnv, or the project has not been trusted — an `.envrc` is arbitrary shell code, so untrusted projects never run one. |
-| `the command line has no working directory` | the process was started without one, and there is nothing to resolve an environment against. |
+| `the command line has no working directory` | the process was started without one, so there is nothing to resolve an environment against. Harmless once per Gradle execution: the IDE computes Gradle's environment through a throwaway command line, and Gradle has an injection point of its own. |
 
 Those lines are the useful part of a bug report. They name no variables and no values: direnv output
 is routinely secret, and even a name can disclose which service a project talks to.
