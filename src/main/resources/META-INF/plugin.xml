@@ -14,8 +14,9 @@
         <ul>
           <li><b>Run and debug configurations</b> &mdash; every language, no per-runner support needed</li>
           <li><b>The build process</b>, so compilation sees the same environment</li>
-          <li><b>Gradle sync, Gradle tasks and Maven</b></li>
-          <li><b>The terminal</b>, including WSL and remote environments</li>
+          <li><b>Gradle and Maven</b> &mdash; sync, tasks, and the run configurations the IDE
+              delegates to Gradle by default</li>
+          <li><b>The terminal</b>, in WSL as well as on your own machine</li>
           <li><b>External Tools</b>, File Watchers, and processes started by other plugins</li>
         </ul>
 
@@ -24,6 +25,13 @@
         keep separate environments and a nested <code>.envrc</code> gets its own. The IDE's own
         process environment is never modified &mdash; which is what makes the isolation real rather
         than approximate.</p>
+
+        <p><b>A JDK or Node interpreter from direnv is offered to the project.</b> Injecting
+        <code>PATH</code> does not help the IDE itself, which resolves toolchains from its own
+        settings &mdash; so indexing and inspections keep calling them missing while a terminal in
+        the same project finds them. Offered rather than applied: a Nix store path can vanish after
+        garbage collection, and rewriting your project SDK at that moment would break the project
+        with no explanation.</p>
 
         <p><b>It keeps itself up to date.</b> Change <code>flake.lock</code> and the environment
         reloads &mdash; not because the plugin knows about Nix, but because direnv reports every
@@ -38,7 +46,8 @@
         variables were applied by <em>name</em> &mdash; knowing that <code>PGPASSWORD</code> was set
         is useful; writing its value into a run configuration would put it straight into git.</p>
 
-        <p>Requires <code>direnv</code> installed and on <code>PATH</code>. Implements
+        <p>Requires <code>direnv</code> installed and on <code>PATH</code> &mdash; on the machine
+        the project lives on, for a project in WSL or on a remote host. Implements
         <a href="https://youtrack.jetbrains.com/issue/IJPL-11588">IJPL-11588</a>.
         Known limitations are documented in the
         <a href="https://github.com/salatmaster/direnv-jetbrains-plugin">README</a>.</p>
