@@ -1,0 +1,6 @@
+<idea-plugin require-restart="false">
+    <extensions defaultExtensionNs="org.jetbrains.idea.maven">
+        <runner.executionConfigurator
+            implementation="io.github.salatmaster.direnv.maven.DirenvMavenExecutionConfigurator"/>
+    </extensions>
+</idea-plugin>

@@ -141,10 +141,10 @@ Stated plainly, because a plugin that hides these costs you an afternoon:
   project SDK at that moment would break the project with no explanation.
 - **Non-local run targets** (Docker, SSH, remote interpreters) bypass the mechanism the plugin
   hooks into.
-- **Variables direnv *unsets* are not removed from Gradle builds.** Gradle receives its
-  environment through a settings API that can only add variables on top of the IDE's own, so an
-  unset is a no-op on that one path. Everywhere else — run configurations, the terminal, the build
-  process — unsets are honoured. A warm Gradle daemon is not a problem: the environment is handed
+- **Variables direnv *unsets* are not removed from Gradle or Maven builds.** Both receive their
+  environment through an API that can only add variables on top of the IDE's own, so an unset is a
+  no-op on those two paths. Everywhere else — run configurations, the terminal, the build process —
+  unsets are honoured. A warm Gradle daemon is not a problem: the environment is handed
   to it explicitly with every build, so it cannot go stale between builds.
 - **WSL works; other remote machines are untested.** direnv runs on the machine the project lives
   on, and a user has confirmed that on WSL with NixOS. SSH and container-backed projects take the

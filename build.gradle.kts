@@ -38,6 +38,7 @@ dependencies {
         pluginComposedModule(implementation(project(":products:gradle")))
         pluginComposedModule(implementation(project(":products:java")))
         pluginComposedModule(implementation(project(":products:javascript")))
+        pluginComposedModule(implementation(project(":products:maven")))
         pluginVerifier()
         zipSigner()
         testFramework(TestFrameworkType.Platform)
