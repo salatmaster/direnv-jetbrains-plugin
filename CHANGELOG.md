@@ -6,6 +6,17 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Maven goals get the environment — run configurations, and the build itself when build and run
+  actions are delegated to Maven ([#31]). Since at least 2026.1 the IDE starts `mvn` through the
+  Eel API rather than as an ordinary process, so the injection point that covers everything else
+  was never reached and nothing said so, not even the debug log. The environment now goes into
+  the one map Maven's launcher lets extensions change, on top of the login shell's variables and
+  the run configuration's own. As with Gradle, a variable direnv *unsets* can survive there.
+
+[#31]: https://github.com/salatmaster/direnv-jetbrains-plugin/issues/31
+
 ## [0.2.4] - 2026-09-04
 
 ### Added

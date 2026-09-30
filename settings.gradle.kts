@@ -23,4 +23,5 @@ include(
     "products:gradle",
     "products:java",
     "products:javascript",
+    "products:maven",
 )
