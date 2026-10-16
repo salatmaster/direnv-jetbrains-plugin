@@ -16,6 +16,14 @@ All notable changes to this plugin are documented here. The format follows
   system directory, and nothing is written before you accept it. A project in WSL is offered its
   toolchain when it sits in one directory.
 
+### Fixed
+
+- A JDK, Node interpreter or Rust toolchain the login shell already had is no longer offered as one
+  direnv provides ([#33]). direnv exports `PATH` whole, so the search also covered `/usr/bin`, Homebrew,
+  rustup's `~/.cargo/bin` or a NixOS user profile, and a project whose `.envrc` provides no
+  toolchain at all could be offered the system's. Only the entries the `.envrc` added to `PATH`
+  are searched now, which direnv's own record of the previous `PATH` makes it possible to tell.
+
 [#33]: https://github.com/salatmaster/direnv-jetbrains-plugin/issues/33
 
 ## [0.2.5] - 2026-09-30

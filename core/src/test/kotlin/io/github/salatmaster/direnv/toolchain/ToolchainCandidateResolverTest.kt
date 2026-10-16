@@ -1,5 +1,7 @@
 package io.github.salatmaster.direnv.toolchain
 
+import io.github.salatmaster.direnv.direnv.DirenvWatchesCodec
+import kotlinx.serialization.json.JsonPrimitive
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.io.File
@@ -221,5 +223,61 @@ class ToolchainCandidateResolverTest {
     fun `names the executable the way the machine that produced the environment names it`() {
         assertThat(ToolchainMachine(isWindows = false) { null }.executable("node")).isEqualTo("node")
         assertThat(ToolchainMachine(isWindows = true) { null }.executable("node")).isEqualTo("node.exe")
+    }
+
+    /**
+     * What direnv exports when the `.envrc` puts [added] in front of [before]: the new `PATH`, and
+     * DIRENV_DIFF recording what `PATH` was until then.
+     */
+    private fun envrcAdding(added: List<Path>, before: List<Path>): Map<String, String?> {
+        val previous = before.joinToString(File.pathSeparator)
+        val diff = """{"p":{"PATH":${JsonPrimitive(previous)}},"n":{}}"""
+        return mapOf(
+            "PATH" to (added + before).joinToString(File.pathSeparator),
+            "DIRENV_DIFF" to DirenvWatchesCodec.encodeRawJson(diff),
+        )
+    }
+
+    @Test
+    fun `a toolchain the login shell already had is not one direnv provides`() {
+        // #33: an .envrc providing no Rust at all was offered the NixOS user profile's cargo,
+        // because direnv exports PATH whole and the whole of it was searched.
+        val system = toolchainHome("java")
+        val tools = Files.createTempDirectory("tools")
+
+        val resolved = ToolchainCandidateResolver.resolve(
+            entries = envrcAdding(added = listOf(tools), before = listOf(system.resolve("bin"))),
+            homeVariable = "JAVA_HOME",
+            executable = "java",
+        )
+
+        assertThat(resolved).isNull()
+    }
+
+    @Test
+    fun `the toolchain the envrc added is found even behind one the login shell had`() {
+        // direnv itself puts PATH_add entries in front, but path_add and a hand-written PATH can
+        // put them anywhere; which one came from the .envrc is what decides, not the order.
+        val system = toolchainHome("node")
+        val envrc = toolchainHome("node")
+        val entries = envrcAdding(added = emptyList(), before = listOf(system.resolve("bin")))
+            .plus("PATH" to "${system.resolve("bin")}${File.pathSeparator}${envrc.resolve("bin")}")
+
+        val resolved = ToolchainCandidateResolver.resolveExecutable(entries, "node")
+
+        assertThat(resolved).isEqualTo(envrc.resolve("bin").resolve("node"))
+    }
+
+    @Test
+    fun `without a readable DIRENV_DIFF the whole PATH is searched, as before`() {
+        val home = toolchainHome("java")
+
+        val resolved = ToolchainCandidateResolver.resolve(
+            entries = mapOf("PATH" to home.resolve("bin").toString(), "DIRENV_DIFF" to "not gzenv"),
+            homeVariable = "JAVA_HOME",
+            executable = "java",
+        )
+
+        assertThat(resolved).isEqualTo(home)
     }
 }

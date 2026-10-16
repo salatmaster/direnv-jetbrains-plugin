@@ -53,17 +53,17 @@ class DirenvRustToolchainsTest {
 
     @Test
     fun `each tool is the one a shell would run, not the one beside cargo`() {
-        // A Nix toolchain without rustfmt in front of rustup's proxies: the shell runs Nix's cargo
-        // and rustup's rustfmt, and so must the IDE.
-        val nix = bin("nix", "cargo", "rustc")
-        val rustup = bin("rustup", "cargo", "rustc", "rustfmt")
+        // A Nix toolchain without rustfmt in front of another one that has it: the shell runs the
+        // first one's cargo and the second one's rustfmt, and so must the IDE.
+        val first = bin("first", "cargo", "rustc")
+        val second = bin("second", "cargo", "rustc", "rustfmt")
 
-        val tools = DirenvRustToolchains.locate(path(nix, rustup), machine)!!
+        val tools = DirenvRustToolchains.locate(path(first, second), machine)!!
 
         assertThat(tools).containsExactly(
-            nix.resolve(machine.executable("cargo")),
-            nix.resolve(machine.executable("rustc")),
-            rustup.resolve(machine.executable("rustfmt")),
+            first.resolve(machine.executable("cargo")),
+            first.resolve(machine.executable("rustc")),
+            second.resolve(machine.executable("rustfmt")),
         )
     }
 

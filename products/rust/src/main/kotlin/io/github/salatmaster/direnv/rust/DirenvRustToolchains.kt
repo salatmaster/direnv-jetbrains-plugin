@@ -28,12 +28,13 @@ object DirenvRustToolchains {
     private val OPTIONAL = listOf("rustfmt", "cargo-clippy")
 
     /**
-     * The tools [entries] provides, each where a shell would find it first on `PATH`, or null
-     * without both cargo and rustc.
+     * The tools [entries] provides, each where a shell would find it first among the `PATH` entries
+     * the `.envrc` added, or null without both cargo and rustc.
      *
      * Each is looked up on its own rather than all of them in cargo's directory: that is what the
-     * shell does, and a `PATH` mixing a Nix toolchain with rustup's proxies is exactly where taking
-     * one directory for all of them would give a toolchain no terminal in the project has.
+     * shell does, and an `.envrc` adding rustfmt from one place and cargo from another is exactly
+     * where taking one directory for all of them would give a toolchain no terminal in the project
+     * has.
      */
     fun locate(entries: Map<String, String?>, machine: ToolchainMachine): List<Path>? {
         fun find(tool: String) =
