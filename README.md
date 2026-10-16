@@ -84,7 +84,7 @@ capability, not that it was tested and failed. Corrections are welcome as issues
 | Terminal | ✅ | — | — | — | — |
 | Build process, External Tools, other plugins' processes | ✅ | — | — | — | — |
 | Gradle sync, Gradle tasks, Maven | ✅ | — | — | run configs only | Gradle tasks |
-| A JDK or Node interpreter from direnv offered to the project | ✅ | — | — | — | — |
+| A JDK, Node interpreter or Rust toolchain from direnv offered to the project | ✅ | — | — | — | — |
 | Projects side by side keep separate environments | ✅ | — | — | — | — |
 | An `.envrc` below the project root | ✅ | — | root only | by hand | — |
 | Reloads on `flake.lock`, `.env`, … (`DIRENV_WATCHES`) | ✅ | discarded ² | `.envrc` on save | — | — |
@@ -113,8 +113,8 @@ one.
 ## Requirements
 
 - A JetBrains IDE, build **261 (2026.1)** or newer — IDEA, PyCharm, GoLand, WebStorm, CLion,
-  RubyMine, PhpStorm, RustRover. Verified against IDEA Community, IDEA Ultimate and PyCharm
-  Community.
+  RubyMine, PhpStorm, RustRover. Verified against IDEA Community, IDEA Ultimate, PyCharm
+  Community and RustRover.
 - [`direnv`](https://direnv.net/docs/installation.html) installed and available on `PATH`.
 
 The 2026.1 floor is a hard requirement rather than a preference: it is the first release whose
@@ -135,8 +135,8 @@ Stated plainly, because a plugin that hides these costs you an afternoon:
   setting rather than this plugin's, but it is the first thing to check when a hook does not see
   what you expect.
 - **Indexing and static analysis do not follow `PATH`.** The IDE resolves toolchains through its
-  own settings, so a JDK or a Node interpreter provided by direnv is *offered* rather than adopted
-  silently.
+  own settings, so a JDK, a Node interpreter or a Rust toolchain provided by direnv is *offered*
+  rather than adopted silently.
   That is deliberate: a Nix store path can vanish after garbage collection, and rewriting your
   project SDK at that moment would break the project with no explanation.
 - **Non-local run targets** (Docker, SSH, remote interpreters) bypass the mechanism the plugin
@@ -149,8 +149,8 @@ Stated plainly, because a plugin that hides these costs you an afternoon:
 - **WSL works; other remote machines are untested.** direnv runs on the machine the project lives
   on, and a user has confirmed that on WSL with NixOS. SSH and container-backed projects take the
   same code path, but nobody has run one yet.
-- Toolchain suggestions cover Java and Node.js. Go and Python reuse the same tested resolver and
-  need only their product module, plus an IDE that bundles the language to compile it against.
+- Toolchain suggestions cover Java, Node.js and Rust. Go and Python reuse the same tested resolver
+  and need only their product module, plus an IDE that bundles the language to compile it against.
 
 ## When the environment does not arrive
 

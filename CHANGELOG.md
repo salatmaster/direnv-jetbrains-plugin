@@ -6,6 +6,18 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The Rust toolchain direnv provides is offered to the project in RustRover and in IDEA Ultimate
+  with the Rust plugin, as the JDK and the Node interpreter already are ([#33]). Each tool is the
+  one a shell in the project would run. A Nix shell built from nixpkgs' separate `cargo` and
+  `rustc` packages leaves them in different directories, while the Rust plugin takes a toolchain
+  as one; for that case, accepting the suggestion links them into a directory under the IDE's own
+  system directory, and nothing is written before you accept it. A project in WSL is offered its
+  toolchain when it sits in one directory.
+
+[#33]: https://github.com/salatmaster/direnv-jetbrains-plugin/issues/33
+
 ## [0.2.5] - 2026-09-30
 
 ### Fixed

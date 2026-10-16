@@ -26,8 +26,8 @@
         process environment is never modified &mdash; which is what makes the isolation real rather
         than approximate.</p>
 
-        <p><b>A JDK or Node interpreter from direnv is offered to the project.</b> Injecting
-        <code>PATH</code> does not help the IDE itself, which resolves toolchains from its own
+        <p><b>A JDK, Node interpreter or Rust toolchain from direnv is offered to the project.</b>
+        Injecting <code>PATH</code> does not help the IDE itself, which resolves toolchains from its own
         settings &mdash; so indexing and inspections keep calling them missing while a terminal in
         the same project finds them. Offered rather than applied: a Nix store path can vanish after
         garbage collection, and rewriting your project SDK at that moment would break the project
@@ -127,6 +127,9 @@
 
     <!-- Optional: only loads in IDEs that have JavaScript support, which excludes IDEA Community. -->
     <depends optional="true" config-file="direnv-javascript.xml">JavaScript</depends>
+
+    <!-- Optional: only loads where the Rust plugin does, which is RustRover and IDEA Ultimate. -->
+    <depends optional="true" config-file="direnv-rust.xml">com.jetbrains.rust</depends>
 
     <actions>
         <group id="direnv.actions" text="direnv" popup="true">
