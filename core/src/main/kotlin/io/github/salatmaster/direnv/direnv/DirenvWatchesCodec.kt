@@ -39,16 +39,7 @@ object DirenvWatchesCodec {
         encoded: String,
         pathMapper: DirenvPathMapper = DirenvPathMapper.SameMachine,
     ): List<DirenvWatch> {
-        val trimmed = encoded.trim()
-        if (trimmed.isEmpty()) return emptyList()
-
-        val text = try {
-            val compressed = Base64.getUrlDecoder().decode(trimmed)
-            InflaterInputStream(compressed.inputStream()).use { it.readBytes() }.toString(Charsets.UTF_8)
-        } catch (e: Exception) {
-            LOG.debug("Failed to decode DIRENV_WATCHES", e)
-            return emptyList()
-        }
+        val text = decodeText(encoded) ?: return emptyList()
 
         val array = try {
             json.parseToJsonElement(text) as? JsonArray ?: return emptyList()
@@ -70,6 +61,24 @@ object DirenvWatchesCodec {
                 modtime = obj.longOf("modtime") ?: obj.longOf("Modtime") ?: 0L,
                 exists = obj.boolOf("exists") ?: obj.boolOf("Exists") ?: true,
             )
+        }
+    }
+
+    /**
+     * The JSON inside any gzenv value, or null for one that is empty or malformed.
+     *
+     * Not only DIRENV_WATCHES is written this way: DIRENV_DIFF is too, and it is what tells the
+     * toolchain search which `PATH` entries the `.envrc` added.
+     */
+    internal fun decodeText(encoded: String): String? {
+        val trimmed = encoded.trim()
+        if (trimmed.isEmpty()) return null
+        return try {
+            val compressed = Base64.getUrlDecoder().decode(trimmed)
+            InflaterInputStream(compressed.inputStream()).use { it.readBytes() }.toString(Charsets.UTF_8)
+        } catch (e: Exception) {
+            LOG.debug("Failed to decode a gzenv value", e)
+            null
         }
     }
 
