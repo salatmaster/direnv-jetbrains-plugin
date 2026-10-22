@@ -129,6 +129,40 @@ class DirenvWatchRegistryTest {
     }
 
     @Test
+    fun `a symlink newer than its target is not reported as stale`() {
+        // home-manager links ~/.config/direnv/direnvrc into the Nix store, where every file has
+        // mtime 1. direnv records the link's own, later time; comparing against the target's
+        // reloaded every environment on every poll.
+        val dir = Files.createTempDirectory("symlink")
+        val target = dir.resolve("store-direnvrc")
+        Files.writeString(target, "")
+        Files.setLastModifiedTime(target, java.nio.file.attribute.FileTime.fromMillis(1000))
+        val link = Files.createSymbolicLink(dir.resolve("direnvrc"), target)
+        val linkTime = Files.getLastModifiedTime(link, java.nio.file.LinkOption.NOFOLLOW_LINKS)
+            .toInstant().epochSecond
+        val registry = DirenvWatchRegistry()
+        registry.replace(Paths.get("/p"), listOf(DirenvWatch(link, linkTime, true)))
+
+        assertThat(registry.staleTargets()).isEmpty()
+    }
+
+    @Test
+    fun `a symlink whose target changes is reported as stale`() {
+        val dir = Files.createTempDirectory("symlink2")
+        val target = dir.resolve("target")
+        Files.writeString(target, "")
+        val link = Files.createSymbolicLink(dir.resolve("link"), target)
+        val recordedTime = Files.getLastModifiedTime(link).toInstant().epochSecond
+        val registry = DirenvWatchRegistry()
+        registry.replace(Paths.get("/p"), listOf(DirenvWatch(link, recordedTime, true)))
+
+        Files.setLastModifiedTime(target, java.nio.file.attribute.FileTime.fromMillis(
+            (recordedTime + 60) * 1000))
+
+        assertThat(registry.staleTargets()).isEqualTo(setOf(abs("/p")))
+    }
+
+    @Test
     fun `rebaseline stops the same change being reported twice`() {
         val dir = Files.createTempDirectory("stamp2")
         val stamp = dir.resolve("allow-stamp")
