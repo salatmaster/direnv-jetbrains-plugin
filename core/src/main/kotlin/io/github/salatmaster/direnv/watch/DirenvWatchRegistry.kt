@@ -2,6 +2,7 @@ package io.github.salatmaster.direnv.watch
 
 import io.github.salatmaster.direnv.direnv.DirenvWatch
 import java.nio.file.Files
+import java.nio.file.LinkOption
 import java.nio.file.Path
 import java.util.concurrent.ConcurrentHashMap
 
@@ -66,9 +67,17 @@ class DirenvWatchRegistry {
         }
     }
 
+    /**
+     * Mirrors direnv's `getLatestStat`: the later of the link's and the target's modification
+     * times, and a dangling symlink counts as missing. Following the link alone never matches what
+     * direnv recorded for a symlink newer than its target — a home-manager `direnvrc` pointing into
+     * the Nix store, whose files all have mtime 1 — so the file would look changed on every poll.
+     */
     private fun currentStateOf(path: Path): Pair<Boolean, Long> = try {
         if (Files.exists(path)) {
-            true to Files.getLastModifiedTime(path).toInstant().epochSecond
+            val target = Files.getLastModifiedTime(path).toInstant().epochSecond
+            val link = Files.getLastModifiedTime(path, LinkOption.NOFOLLOW_LINKS).toInstant().epochSecond
+            true to maxOf(link, target)
         } else {
             false to 0L
         }

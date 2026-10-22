@@ -6,6 +6,14 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- An environment that watches a symlink newer than its target no longer reloads every two seconds.
+  home-manager links `~/.config/direnv/direnvrc` into the Nix store, where every file has
+  modification time 1, while direnv records the later of the link's and the target's times. The
+  poller compared against the target's alone, so the file looked changed on every poll and each
+  open project's environment reloaded endlessly. It now takes the times the way direnv does.
+
 ## [0.3.0] - 2026-10-16
 
 ### Added
