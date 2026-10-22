@@ -6,6 +6,8 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-22
+
 ### Fixed
 
 - An environment that watches a symlink newer than its target no longer reloads every two seconds.
@@ -293,7 +295,8 @@ All notable changes to this plugin are documented here. The format follows
 - direnv is not executed at all in projects that have not been trusted.
 - Environment values are never written to logs, run configurations, or any file under `.idea/`.
 
-[unreleased]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.3.0...HEAD
+[unreleased]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.2.5...v0.3.0
 [0.2.5]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.2.3...v0.2.4
