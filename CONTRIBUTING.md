@@ -28,7 +28,7 @@ runner. Install it if you want to exercise the plugin by hand in `runIde`.
 | `products/maven` | Maven plugin | Maven goal environment injection |
 | `products/java` | Java plugin | JDK suggestion |
 | `products/javascript` | JavaScript plugin | Node interpreter suggestion |
-| `products/rust` | Rust plugin | Rust toolchain suggestion |
+| `products/rust` | Rust plugin | Rust toolchain and standard library suggestion |
 
 Gradle project paths match directory paths, so `products/terminal` is the project
 `:products:terminal`. Everything is compiled into a single jar; the split exists for one reason

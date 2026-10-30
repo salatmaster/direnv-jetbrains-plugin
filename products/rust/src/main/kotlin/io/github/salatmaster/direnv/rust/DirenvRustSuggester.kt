@@ -13,8 +13,10 @@ import io.github.salatmaster.direnv.DirenvMachine
 import io.github.salatmaster.direnv.DirenvService
 import io.github.salatmaster.direnv.DirenvState
 import io.github.salatmaster.direnv.DirenvStateListener
+import io.github.salatmaster.direnv.direnv.DirenvEnvironment
 import org.rust.cargo.project.settings.RustProjectSettingsService
 import org.rust.cargo.toolchain.RsToolchainProvider
+import org.rust.cargo.toolchain.tools.rustup
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -34,7 +36,50 @@ class DirenvRustSuggester : ProjectActivity {
         project.messageBus.connect().subscribe(
             DirenvStateListener.TOPIC,
             object : DirenvStateListener {
-                private var lastSuggested: Path? = null
+                private var lastToolchainSuggested: Path? = null
+                private var lastStdlibSuggested: Path? = null
+
+                private fun findAndSuggestToolchain(environment: DirenvEnvironment): List<Path>? {
+
+                    val tools = DirenvRustToolchains.locate(
+                        environment.entries,
+                        DirenvMachine.toolchainMachine(project),
+                    ) ?: return null
+
+                    val shared = DirenvRustToolchains.sharedDirectory(tools)
+                    // ponytail: links are only made on this machine. For a project in WSL they would
+                    // have to be made inside the distribution, so a toolchain spread across
+                    // directories there is not offered at all; make them there if anyone needs it.
+                    if (shared == null && !DirenvMachine.isLocal(project)) return null
+                    val toolchainDirectory = shared ?: DirenvRustToolchains.linkedDirectory(linkRoot(), tools)
+
+                    if (project.service<RustProjectSettingsService>().toolchain?.location == toolchainDirectory) return tools
+                    // Do not nag on every reload about a toolchain the user already declined.
+                    if (lastToolchainSuggested == toolchainDirectory) return tools
+                    lastToolchainSuggested = toolchainDirectory
+
+                    suggestToolchain(project, toolchainDirectory, tools, linked = shared == null)
+                    return tools
+                }
+
+                private fun findAndSuggestStdlibSource(environment: DirenvEnvironment) {
+                    val stdlibCandidate =
+                        environment.entries["RUST_SRC_PATH"]?.let {
+                            DirenvMachine.toolchainMachine(project).path(it)?.toAbsolutePath()
+                        } ?: return
+
+                    // if candidate is already in use
+                    if (project.service<RustProjectSettingsService>().explicitPathToStdlib?.let { Path.of(it) }
+                            ?.equals(stdlibCandidate) ?: false
+                    ) return
+
+                    if (!DirenvRustToolchains.isValidStdlibSource(stdlibCandidate)) return
+
+                    if (lastStdlibSuggested == stdlibCandidate) return
+                    lastStdlibSuggested = stdlibCandidate
+
+                    suggestStdlib(project, stdlibCandidate)
+                }
 
                 override fun stateChanged(state: DirenvState) {
                     if (state !is DirenvState.Loaded) return
@@ -43,38 +88,37 @@ class DirenvRustSuggester : ProjectActivity {
                     // A Nix shell often carries cargo for some tool's sake, and the Rust plugin is
                     // installed in IDEA Ultimate for projects that are not Rust at all.
                     if (!Files.isRegularFile(workingDir.resolve("Cargo.toml"))) return
-
                     val environment = DirenvService.getInstance(project).cachedFor(workingDir) ?: return
-                    val tools = DirenvRustToolchains.locate(
-                        environment.entries,
-                        DirenvMachine.toolchainMachine(project),
-                    ) ?: return
 
-                    val shared = DirenvRustToolchains.sharedDirectory(tools)
-                    // ponytail: links are only made on this machine. For a project in WSL they would
-                    // have to be made inside the distribution, so a toolchain spread across
-                    // directories there is not offered at all; make them there if anyone needs it.
-                    if (shared == null && !DirenvMachine.isLocal(project)) return
-                    val directory = shared ?: DirenvRustToolchains.linkedDirectory(linkRoot(), tools)
+                    val tools = findAndSuggestToolchain(environment)
 
-                    if (project.service<RustProjectSettingsService>().toolchain?.location == directory) return
-                    // Do not nag on every reload about a toolchain the user already declined.
-                    if (lastSuggested == directory) return
-                    lastSuggested = directory
-
-                    suggest(project, directory, tools, linked = shared == null)
+                    // do not suggest stdlib source when rustup is available as rustup toolchains provide the stdlib source
+                    if ((tools != null && !DirenvRustToolchains.hasRustup(tools)) &&
+                        project.service<RustProjectSettingsService>().toolchain?.rustup(workingDir) == null
+                    )
+                        findAndSuggestStdlibSource(environment)
                 }
             },
         )
     }
 
+    private fun suggestStdlib(project: Project, directory: Path) {
+        NotificationGroupManager.getInstance().getNotificationGroup("direnv")
+            .createNotification(
+                "direnv provides a Rust Standard Library Source at $directory.",
+                NotificationType.INFORMATION
+            )
+            .addAction(ApplyRustStdlibAction(project, directory))
+            .notify(project)
+    }
+
     /** Under the IDE's own directory: nothing is written into the project for the IDE's sake. */
     private fun linkRoot(): Path = PathManager.getSystemDir().resolve("direnv").resolve("rust-toolchains")
 
-    private fun suggest(project: Project, directory: Path, tools: List<Path>, linked: Boolean) {
+    private fun suggestToolchain(project: Project, directory: Path, tools: List<Path>, linked: Boolean) {
         val text = if (linked) {
             "direnv provides a Rust toolchain whose tools are in separate directories, which differs " +
-                "from this project's. Using it links them into $directory."
+                    "from this project's. Using it links them into $directory."
         } else {
             "direnv provides a Rust toolchain at $directory, which differs from this project's."
         }
@@ -83,6 +127,13 @@ class DirenvRustSuggester : ProjectActivity {
             .createNotification(text, NotificationType.INFORMATION)
             .addAction(ApplyRustToolchainAction(project, directory, tools))
             .notify(project)
+    }
+}
+
+private class ApplyRustStdlibAction(private val project: Project, private val directory: Path) :
+    AnAction("Use This Rust Standard Library Source") {
+    override fun actionPerformed(e: AnActionEvent) {
+        project.service<RustProjectSettingsService>().modify { it.explicitPathToStdlib = directory.toString() }
     }
 }
 

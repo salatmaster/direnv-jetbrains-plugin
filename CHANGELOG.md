@@ -6,6 +6,12 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The Rust Standard Library Source direnv provides at `$RUST_SRC_PATH` is offered to the project in RustRover and in
+  IDEA Ultimate
+  with the Rust plugin, as the Rust Toolchain already is.
+
 ## [0.3.1] - 2026-10-22
 
 ### Fixed

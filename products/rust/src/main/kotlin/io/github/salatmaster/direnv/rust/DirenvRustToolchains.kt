@@ -6,7 +6,7 @@ import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
 import java.security.MessageDigest
-import java.util.HexFormat
+import java.util.*
 
 /**
  * Finds the Rust toolchain direnv provides, and the one directory the Rust plugin can use for it.
@@ -25,7 +25,7 @@ object DirenvRustToolchains {
     private val REQUIRED = listOf("cargo", "rustc")
 
     /** Found in the toolchain directory when present; formatting and Clippy need them there. */
-    private val OPTIONAL = listOf("rustfmt", "cargo-clippy")
+    private val OPTIONAL = listOf("rustfmt", "cargo-clippy", "rustup")
 
     /**
      * The tools [entries] provides, each where a shell would find it first among the `PATH` entries
@@ -69,5 +69,18 @@ object DirenvRustToolchains {
             // The directory is named after what it links, so a link already there is the same link.
             if (!Files.exists(link, LinkOption.NOFOLLOW_LINKS)) Files.createSymbolicLink(link, tool)
         }
+    }
+
+    /** returns true if the tools include rustup */
+    fun hasRustup(tools: List<Path>): Boolean {
+        return tools.any { it.fileName.equals("rustup") }
+    }
+
+    fun isValidStdlibSource(directory: Path): Boolean {
+        return Files.isDirectory(directory) && (
+                Files.isDirectory(directory.resolve("library/core")) ||
+                        Files.isDirectory(directory.resolve("src/core")) ||
+                        Files.isDirectory(directory.resolve("core"))
+                )
     }
 }
