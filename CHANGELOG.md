@@ -8,9 +8,14 @@ All notable changes to this plugin are documented here. The format follows
 
 ### Added
 
-- The Rust Standard Library Source direnv provides at `$RUST_SRC_PATH` is offered to the project in RustRover and in
-  IDEA Ultimate
-  with the Rust plugin, as the Rust Toolchain already is.
+- The standard library sources named by `RUST_SRC_PATH` are offered to the project, as the Rust
+  toolchain already is ([#37]). Without rustup the Rust plugin looks for them only in the
+  toolchain's sysroot, and nixpkgs' `rustc` has none there, so a Nix shell without rustup or a Rust
+  overlay left the project with no completion or navigation into `std`. The variable may name the
+  `library` directory itself, as rust-analyzer expects, or the root of a rust-lang/rust checkout. A
+  toolchain with rustup fetches its own sources and is not offered any.
+
+[#37]: https://github.com/salatmaster/direnv-jetbrains-plugin/pull/37
 
 ## [0.3.1] - 2026-10-22
 

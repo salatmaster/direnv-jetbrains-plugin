@@ -6,7 +6,7 @@ import java.nio.file.Files
 import java.nio.file.LinkOption
 import java.nio.file.Path
 import java.security.MessageDigest
-import java.util.*
+import java.util.HexFormat
 
 /**
  * Finds the Rust toolchain direnv provides, and the one directory the Rust plugin can use for it.
@@ -25,7 +25,7 @@ object DirenvRustToolchains {
     private val REQUIRED = listOf("cargo", "rustc")
 
     /** Found in the toolchain directory when present; formatting and Clippy need them there. */
-    private val OPTIONAL = listOf("rustfmt", "cargo-clippy", "rustup")
+    private val OPTIONAL = listOf("rustfmt", "cargo-clippy")
 
     /**
      * The tools [entries] provides, each where a shell would find it first among the `PATH` entries
@@ -71,16 +71,12 @@ object DirenvRustToolchains {
         }
     }
 
-    /** returns true if the tools include rustup */
-    fun hasRustup(tools: List<Path>): Boolean {
-        return tools.any { it.fileName.equals("rustup") }
-    }
-
-    fun isValidStdlibSource(directory: Path): Boolean {
-        return Files.isDirectory(directory) && (
-                Files.isDirectory(directory.resolve("library/core")) ||
-                        Files.isDirectory(directory.resolve("src/core")) ||
-                        Files.isDirectory(directory.resolve("core"))
-                )
-    }
+    /**
+     * Whether [directory] holds the standard library's sources, in any of the shapes `RUST_SRC_PATH`
+     * comes in: the `library` directory itself, which is what rust-analyzer expects and what
+     * nixpkgs' `rustLibSrc` and rustup's `rust-src` are, or a checkout of rust-lang/rust with
+     * `library/` inside. The Rust plugin accepts both.
+     */
+    fun isStandardLibrary(directory: Path): Boolean =
+        listOf("core", "library/core").any { Files.isDirectory(directory.resolve(it)) }
 }

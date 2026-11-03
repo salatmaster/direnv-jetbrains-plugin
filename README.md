@@ -84,7 +84,7 @@ capability, not that it was tested and failed. Corrections are welcome as issues
 | Terminal | ✅ | — | — | — | — |
 | Build process, External Tools, other plugins' processes | ✅ | — | — | — | — |
 | Gradle sync, Gradle tasks, Maven | ✅ | — | — | run configs only | Gradle tasks |
-| A JDK, Node interpreter or Rust toolchain and standard library path from direnv offered to the project | ✅ | — | — | — | — |
+| A JDK, Node interpreter, Rust toolchain or Rust standard library from direnv offered to the project | ✅ | — | — | — | — |
 | Projects side by side keep separate environments | ✅ | — | — | — | — |
 | An `.envrc` below the project root | ✅ | — | root only | by hand | — |
 | Reloads on `flake.lock`, `.env`, … (`DIRENV_WATCHES`) | ✅ | discarded ² | `.envrc` on save | — | — |
