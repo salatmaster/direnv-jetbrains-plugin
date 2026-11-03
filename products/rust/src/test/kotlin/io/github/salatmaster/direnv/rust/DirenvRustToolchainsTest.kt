@@ -111,4 +111,22 @@ class DirenvRustToolchainsTest {
             .isEqualTo(DirenvRustToolchains.linkedDirectory(root, before.reversed()))
             .isNotEqualTo(DirenvRustToolchains.linkedDirectory(root, after))
     }
+
+    @Test
+    fun `standard library sources are found as RUST_SRC_PATH names them`() {
+        // nixpkgs' rustLibSrc and rustup's rust-src are the library directory itself, which is what
+        // rust-analyzer expects; a fetchFromGitHub of rust-lang/rust is the root above it.
+        val library = Files.createDirectories(temp.resolve("rust-lib-src/core")).parent
+        val checkout = Files.createDirectories(temp.resolve("rust/library/core")).parent.parent
+
+        assertThat(DirenvRustToolchains.isStandardLibrary(library)).isTrue()
+        assertThat(DirenvRustToolchains.isStandardLibrary(checkout)).isTrue()
+    }
+
+    @Test
+    fun `a directory without core is no standard library`() {
+        val elsewhere = Files.createDirectories(temp.resolve("not-sources/library"))
+
+        assertThat(DirenvRustToolchains.isStandardLibrary(elsewhere.parent)).isFalse()
+    }
 }

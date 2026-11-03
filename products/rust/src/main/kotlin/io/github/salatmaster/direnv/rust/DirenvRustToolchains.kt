@@ -70,4 +70,13 @@ object DirenvRustToolchains {
             if (!Files.exists(link, LinkOption.NOFOLLOW_LINKS)) Files.createSymbolicLink(link, tool)
         }
     }
+
+    /**
+     * Whether [directory] holds the standard library's sources, in any of the shapes `RUST_SRC_PATH`
+     * comes in: the `library` directory itself, which is what rust-analyzer expects and what
+     * nixpkgs' `rustLibSrc` and rustup's `rust-src` are, or a checkout of rust-lang/rust with
+     * `library/` inside. The Rust plugin accepts both.
+     */
+    fun isStandardLibrary(directory: Path): Boolean =
+        listOf("core", "library/core").any { Files.isDirectory(directory.resolve(it)) }
 }
