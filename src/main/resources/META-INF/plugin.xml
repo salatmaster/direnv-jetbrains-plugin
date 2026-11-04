@@ -4,20 +4,21 @@
     <vendor email="abstractcoderx@gmail.com" url="https://github.com/salatmaster">salatmaster</vendor>
 
     <description><![CDATA[
-        <p><b>Your <code>.envrc</code> environment, everywhere the IDE runs something.</b></p>
+        <p><b>direnv for every process the IDE starts.</b> Run configurations, tests, Gradle, Maven
+        and the terminal get your project's <code>.envrc</code> environment variables, per project.</p>
 
-        <p>You use <a href="https://direnv.net">direnv</a>. Your JDK comes from Nix, your toolchain
-        from Devbox, your credentials from a <code>.env</code> file the shell loads for you. In the
-        terminal, everything works &mdash; and then you open the IDE, and none of it exists.</p>
+        <p>You use <a href="https://direnv.net">direnv</a>: nix-direnv and a Nix flake, devenv, Devbox,
+        or a <code>.env</code> file the shell loads for you. In the terminal, everything works &mdash;
+        and then you open the IDE, and none of it exists.</p>
 
         <p>This plugin makes that environment available to the things the IDE actually starts:</p>
         <ul>
-          <li><b>Run and debug configurations</b> &mdash; every language, no per-runner support needed</li>
+          <li><b>Run, debug and test configurations</b> &mdash; every language, no per-runner support needed</li>
           <li><b>The build process</b>, so compilation sees the same environment</li>
           <li><b>Gradle and Maven</b> &mdash; sync, tasks, and the run configurations the IDE
               delegates to Gradle by default</li>
           <li><b>The terminal</b>, in WSL as well as on your own machine</li>
-          <li><b>External Tools</b>, File Watchers, and processes started by other plugins</li>
+          <li><b>External Tools</b>, File Watchers, git hooks, and processes started by other plugins</li>
         </ul>
 
         <p><b>Scoped to the project, not the IDE.</b> The environment is resolved per project and
@@ -26,7 +27,8 @@
         process environment is never modified &mdash; which is what makes the isolation real rather
         than approximate.</p>
 
-        <p><b>A JDK, Node interpreter or Rust toolchain from direnv is offered to the project.</b>
+        <p><b>A JDK, Node interpreter, Rust toolchain or Rust standard library from direnv is offered
+        to the project.</b>
         Injecting <code>PATH</code> does not help the IDE itself, which resolves toolchains from its own
         settings &mdash; so indexing and inspections keep calling them missing while a terminal in
         the same project finds them. Offered rather than applied: a Nix store path can vanish after
@@ -45,6 +47,12 @@
         configurations or any file under <code>.idea/</code>. A built-in viewer shows which
         variables were applied by <em>name</em> &mdash; knowing that <code>PGPASSWORD</code> was set
         is useful; writing its value into a run configuration would put it straight into git.</p>
+
+        <p><b>Getting started.</b> Install <a href="https://direnv.net/docs/installation.html">direnv</a>
+        and open a project with an <code>.envrc</code>. If direnv has not allowed it yet, read it, then
+        click <b>Allow</b> or run <code>direnv allow</code> in a terminal. The status bar then shows
+        how many variables were added, changed and removed; click it to reload, open the
+        <code>.envrc</code>, or see which variables were applied.</p>
 
         <p>Requires <code>direnv</code> installed and on <code>PATH</code> &mdash; on the machine
         the project lives on, for a project in WSL or on a remote host. Implements
