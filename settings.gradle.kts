@@ -25,4 +25,5 @@ include(
     "products:javascript",
     "products:maven",
     "products:rust",
+    "products:go",
 )

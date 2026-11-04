@@ -6,6 +6,14 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- In GoLand, and in IDEA Ultimate with the Go plugin, the GOROOT direnv provides is offered to the
+  project, as the JDK, Node and Rust already are. GoLand runs every go command, from module sync to
+  tests, out of the GOROOT in its own settings, so a Go from a Nix shell was used by the terminal and
+  by nothing else. A Go from nixpkgs or Homebrew is found through the link on `PATH` to its real
+  GOROOT, and a GOROOT the `.envrc` exports, as devenv does, is taken as it is.
+
 ## [0.3.2] - 2026-11-04
 
 ### Added

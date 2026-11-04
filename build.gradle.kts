@@ -40,6 +40,7 @@ dependencies {
         pluginComposedModule(implementation(project(":products:javascript")))
         pluginComposedModule(implementation(project(":products:maven")))
         pluginComposedModule(implementation(project(":products:rust")))
+        pluginComposedModule(implementation(project(":products:go")))
         pluginVerifier()
         zipSigner()
         testFramework(TestFrameworkType.Platform)
@@ -101,7 +102,11 @@ intellijPlatform {
             // really are optional and the plugin loads in IDEs beyond IDEA.
             create(IntelliJPlatformType.PyCharmCommunity, providers.gradleProperty("platformVersion"))
             // Ultimate is the only IDE here that bundles JavaScript, so it is the only one that
-            // exercises the Node module rather than skipping it as unavailable.
+            // exercises the Node module rather than skipping it as unavailable. It bundles the Go
+            // plugin too, which is what exercises the Go module. GoLand itself is no better a check
+            // and a worse one: the verifier fetches the Gradle plugin from the Marketplace for it,
+            // and then reports the JDK suggester's classes as unresolved, although direnv-java.xml
+            // cannot load in an IDE without com.intellij.java.
             create(IntelliJPlatformType.IntellijIdea, providers.gradleProperty("platformVersion"))
             // RustRover bundles the Rust plugin, so it is the only one that exercises the Rust module.
             create(IntelliJPlatformType.RustRover, providers.gradleProperty("platformVersion"))
