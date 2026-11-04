@@ -71,12 +71,13 @@ so each has an integration of its own.
 
 <img align="left" width="56%" hspace="14" src="docs/screenshots/toolchains.png" alt="Four notifications: direnv provides a JDK, a Node interpreter, a Rust toolchain and the Rust standard library sources, each with a link to use it">
 
-### The JDK, Node and Rust from your shell
+### The JDK, Go, Node and Rust from your shell
 
 The editor resolves code against the IDE's own SDK settings, not `PATH`, so a JDK from Nix stays
-missing there while the terminal finds it. When direnv provides a JDK, a Node interpreter, a Rust
-toolchain or the Rust standard library, the plugin offers it. Only offers: a Nix store path can vanish
-after garbage collection, and an SDK that changed silently would break the project with no explanation.
+missing there while the terminal finds it. When direnv provides a JDK, a GOROOT, a Node interpreter, a
+Rust toolchain or the Rust standard library, the plugin offers it. Only offers: a Nix store path can
+vanish after garbage collection, and an SDK that changed silently would break the project with no
+explanation.
 
 <br clear="all">
 <br>
@@ -211,7 +212,7 @@ not that it was tested and failed. Corrections are welcome as issues.
     <td align="center">—</td>
   </tr>
   <tr>
-    <td>JDK, Node and Rust from direnv offered to the project</td>
+    <td>JDK, Go, Node and Rust from direnv offered to the project</td>
     <td align="center">✅</td>
     <td align="center">—</td>
     <td align="center">—</td>
@@ -295,7 +296,7 @@ by comparing modification times.
   an API that can only add. Everywhere else, unsets are honoured.
 - **WSL is confirmed; other remote machines are untested.** SSH and container-backed projects take the
   same code path, but nobody has run one yet.
-- **Toolchain suggestions cover Java, Node.js and Rust.** Go and Python need only their product module.
+- **Toolchain suggestions cover Java, Go, Node.js and Rust.** Python needs only its product module.
 
 <details>
 <summary><b>When the environment does not arrive</b></summary>
