@@ -6,6 +6,8 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-11-04
+
 ### Added
 
 - The standard library sources named by `RUST_SRC_PATH` are offered to the project, as the Rust
@@ -306,7 +308,8 @@ All notable changes to this plugin are documented here. The format follows
 - direnv is not executed at all in projects that have not been trusted.
 - Environment values are never written to logs, run configurations, or any file under `.idea/`.
 
-[unreleased]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.3.1...HEAD
+[unreleased]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.2.5...v0.3.0
 [0.2.5]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.2.4...v0.2.5
