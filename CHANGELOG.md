@@ -6,6 +6,18 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- A fish terminal in a project whose `.envrc` uses a Nix dev shell no longer opens with
+  `set: nix-shell-env: invalid variable name` ([#40]). The IDE's fish integration walks the
+  environment in a function whose own variables are called `name` and `value`, and every Nix dev
+  shell exports `name`, so the script wrote over it and then failed on the result. `$name` was
+  left holding some other variable's name, which a prompt such as Starship shows. Such a variable is now
+  handed to the script to set rather than set before it runs, so the loop has nothing to write over. IDE 2026.1 printed no error but overwrote `name`
+  the same way, and its script leaves the plugin no way around it.
+
+[#40]: https://github.com/salatmaster/direnv-jetbrains-plugin/issues/40
+
 ## [0.4.0] - 2026-11-04
 
 ### Added

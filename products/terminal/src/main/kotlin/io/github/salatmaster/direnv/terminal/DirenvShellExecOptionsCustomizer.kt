@@ -7,6 +7,7 @@ import io.github.salatmaster.direnv.DirenvGuard
 import io.github.salatmaster.direnv.DirenvMachine
 import io.github.salatmaster.direnv.DirenvService
 import kotlinx.coroutines.runBlocking
+import org.jetbrains.plugins.terminal.session.ShellName
 import org.jetbrains.plugins.terminal.startup.MutableShellExecOptions
 import org.jetbrains.plugins.terminal.startup.ShellExecOptionsCustomizer
 import java.nio.file.Path
@@ -41,7 +42,12 @@ class DirenvShellExecOptionsCustomizer : ShellExecOptionsCustomizer {
                 }
                 ?: return
 
-            DirenvTerminalEnvironmentApplier.apply(environment) { name, value ->
+            DirenvTerminalEnvironmentApplier.apply(
+                environment,
+                fish = shellExecOptions.execCommand.shellName == ShellName.FISH,
+                // A live view, so it shows what each setter call wrote.
+                envs = shellExecOptions.envs,
+            ) { name, value ->
                 // A null value removes the variable; see DirenvTerminalEnvironmentApplier.
                 shellExecOptions.setEnvironmentVariable(name, value)
             }
