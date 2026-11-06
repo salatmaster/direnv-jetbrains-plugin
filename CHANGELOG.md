@@ -6,6 +6,8 @@ All notable changes to this plugin are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-06
+
 ### Fixed
 
 - A fish terminal in a project whose `.envrc` uses a Nix dev shell no longer opens with
@@ -330,7 +332,8 @@ All notable changes to this plugin are documented here. The format follows
 - direnv is not executed at all in projects that have not been trusted.
 - Environment values are never written to logs, run configurations, or any file under `.idea/`.
 
-[unreleased]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.4.0...HEAD
+[unreleased]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/salatmaster/direnv-jetbrains-plugin/compare/v0.3.0...v0.3.1
